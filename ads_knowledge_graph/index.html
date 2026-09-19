@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ads Papers — Knowledge Graph</title>
+<style>
+:root{
+  --bg:#0b1020; --panel:#0f162b; --panel2:#131c33; --line:#223052;
+  --tx:#e7edf7; --tx2:#93a1bd; --tx3:#5b6a8a; --acc:#67e8f9; --gold:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+#app{display:flex;height:100vh}
+/* ---------- sidebar ---------- */
+#sidebar{width:292px;min-width:292px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a3a63 transparent}
+#sidebar::-webkit-scrollbar{width:8px}
+#sidebar::-webkit-scrollbar-thumb{background:#2a3a63;border-radius:4px}
+#sidebar header{padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+#sidebar h1{font-size:16px;letter-spacing:.2px}
+#sidebar h1 span{color:var(--acc)}
+#sidebar .sub{color:var(--tx2);font-size:11.5px;margin-top:3px}
+#stats{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+#stats .chip{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--tx2)}
+#stats .chip b{color:var(--tx);font-weight:600}
+.sec{padding:12px 16px;border-bottom:1px solid var(--line)}
+.sec h2{font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--tx3);margin-bottom:8px}
+.sec h2 .mini{float:right;text-transform:none;letter-spacing:0;font-size:10.5px}
+.sec h2 .mini a{color:#4f7dd9;cursor:pointer;text-decoration:none}
+#search{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--tx);padding:7px 10px;font-size:12.5px;outline:none}
+#search:focus{border-color:#3b82f6}
+#searchCount{font-size:11px;color:var(--tx2);margin-top:5px;min-height:14px}
+label.row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;color:var(--tx2);font-size:12.5px;user-select:none}
+label.row:hover{color:var(--tx)}
+label.row input{accent-color:#3b82f6}
+label.row .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.stagegrid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px}
+.range{display:flex;align-items:center;gap:8px;margin:4px 0}
+.range input[type=range]{flex:1;accent-color:#3b82f6;height:14px}
+.range .val{width:38px;text-align:center;color:var(--tx);font-size:12px;background:var(--panel2);border-radius:5px;padding:1px 0}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button.tbtn{background:var(--panel2);border:1px solid var(--line);color:var(--tx2);border-radius:7px;padding:5px 9px;font-size:11.5px;cursor:pointer}
+button.tbtn:hover{color:var(--tx);border-color:#33507e}
+button.tbtn.on{color:#0b1020;background:var(--acc);border-color:var(--acc);font-weight:600}
+#legend .lrow{display:flex;align-items:center;gap:8px;padding:2.5px 0;color:var(--tx2);font-size:11.5px}
+#legend .dot{width:11px;height:11px;border-radius:50%;flex:none}
+#legend .lshape{width:12px;height:12px;flex:none}
+#legend .lsvg{flex:none}
+details{padding:10px 16px;border-bottom:1px solid var(--line)}
+details summary{cursor:pointer;color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:1.2px}
+details p{color:var(--tx2);font-size:11.5px;margin-top:8px}
+details p b{color:var(--tx)}
+/* ---------- graph ---------- */
+#graphwrap{position:relative;flex:1;overflow:hidden}
+svg#graph{width:100%;height:100%;display:block;cursor:grab}
+svg#graph.dragging{cursor:grabbing}
+#tooltip{position:absolute;pointer-events:none;background:#0d1425f2;border:1px solid #33507e;border-radius:8px;padding:8px 10px;max-width:320px;font-size:12px;display:none;z-index:30;box-shadow:0 8px 24px #000a}
+#tooltip .tt-tag{color:var(--acc);font-weight:600}
+#tooltip .tt-title{color:var(--tx);margin-top:2px}
+#tooltip .tt-meta{color:var(--tx2);margin-top:3px;font-size:11px}
+#detail{position:absolute;top:14px;right:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:#0d1425f5;border:1px solid #33507e;border-radius:12px;padding:14px 16px;display:none;z-index:20;box-shadow:0 12px 32px #000c;scrollbar-width:thin}
+#detail h3{font-size:15px;line-height:1.3}
+#detail .badges{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 2px}
+#detail .badge{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--tx2)}
+#detail .badge.stage{color:var(--tx);border-color:#3b5f8a}
+#detail .note{color:var(--tx2);font-size:12px;margin-top:8px}
+#detail .rel{margin-top:12px}
+#detail .rel h4{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:5px}
+#detail .rel a{display:block;color:#9fc1f7;text-decoration:none;font-size:12px;padding:2.5px 0;cursor:pointer}
+#detail .rel a:hover{color:var(--acc)}
+#detail .rel a span{color:var(--tx3);font-size:11px}
+#detail a.pdflink{display:inline-block;margin-top:12px;color:#0b1020;background:var(--acc);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:600;text-decoration:none}
+#detail a.pdflink:hover{filter:brightness(1.1)}
+#detail .close{position:absolute;top:10px;right:12px;color:var(--tx3);cursor:pointer;font-size:16px;line-height:1}
+#detail .close:hover{color:var(--tx)}
+#detail .memlist{max-height:260px;overflow-y:auto;scrollbar-width:thin}
+#hint{position:absolute;left:14px;bottom:12px;color:var(--tx3);font-size:11px;pointer-events:none}
+#hint b{color:var(--tx2);font-weight:600}
+@media (max-width:900px){#sidebar{position:absolute;z-index:40;height:100%;left:-292px;transition:left .2s}#sidebar.open{left:0}#menubtn{display:block!important}}
+#menubtn{display:none;position:absolute;top:10px;left:10px;z-index:50}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header>
+      <h1>Ads Papers <span>·</span> Knowledge Graph</h1>
+      <div class="sub">Ads-related papers from <i>Awesome Deep Learning Papers for Search / Rec / Ads</i></div>
+      <div id="stats"></div>
+    </header>
+
+    <div class="sec">
+      <input id="search" type="text" placeholder="Search paper, model, company, venue…">
+      <div id="searchCount"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Relations <span class="mini"><a id="relAll">all</a> · <a id="relNone">lineage&nbsp;only</a></span></h2>
+      <div id="relBoxes"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Hub nodes</h2>
+      <div id="hubBoxes"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Pipeline stages <span class="mini"><a id="stAll">all</a> · <a id="stNone">none</a></span></h2>
+      <div id="stageBoxes" class="stagegrid"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Years</h2>
+      <div class="range"><input id="y0" type="range"><span class="val" id="y0v"></span></div>
+      <div class="range"><input id="y1" type="range"><span class="val" id="y1v"></span></div>
+    </div>
+
+    <div class="sec">
+      <h2>View</h2>
+      <div class="btns">
+        <button class="tbtn" id="btnFit">Fit view</button>
+        <button class="tbtn" id="btnLabels">Paper labels</button>
+        <button class="tbtn" id="btnPause">Pause physics</button>
+        <button class="tbtn" id="btnShake">Re-heat</button>
+      </div>
+    </div>
+
+    <div class="sec" id="legend">
+      <h2>Legend</h2>
+      <div id="legendBody"></div>
+    </div>
+
+    <details>
+      <summary>About this graph</summary>
+      <p><b>104 Ads-related papers</b> were curated from the repo README (title mentions ads / advertising / sponsored search, or they are CTR / CVR / delayed-feedback / calibration papers deployed on ads systems).</p>
+      <p>Node types: <b>papers</b> (colored by pipeline stage), <b>stage</b>, <b>theme</b>, <b>company</b> and <b>venue</b> hubs.</p>
+      <p>Edge types: <b>model lineage</b> (curated “builds on” links, e.g. DIN → DIEN → SIM → TWIN), <b>survey covers</b>, plus structural links to stages, themes, companies and venues.</p>
+      <p>Generated by <b>build_graph.py</b> from README.md — regenerate anytime.</p>
+    </details>
+  </aside>
+
+  <main id="graphwrap">
+    <button class="tbtn" id="menubtn">☰ Filters</button>
+    <svg id="graph">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#67e8f9"></path>
+        </marker>
+        <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#a5b4fc"></path>
+        </marker>
+      </defs>
+      <g id="viewport">
+        <g id="elayer"></g>
+        <g id="nlayer"></g>
+        <g id="llayer"></g>
+      </g>
+    </svg>
+    <div id="tooltip"></div>
+    <div id="detail"></div>
+    <div id="hint"><b>drag</b> nodes · <b>scroll</b> zoom · <b>click</b> node for details · <b>double-click</b> background to fit</div>
+  </main>
+</div>
+
+<script>
+'use strict';
+const DATA = {"meta": {"name": "Ads Papers Knowledge Graph", "source": "Awesome-Deep-Learning-Papers-for-Search-Recommendation-Advertising", "generated": "2026-09-19", "nodeCount": 155, "edgeCount": 494}, "nodes": [{"id": "dltr", "type": "paper", "label": "DLTR", "title": "2026 (TOIS) [DLTR] Deep Learning to Rank in Industrial Search Engines, Recommender Systems, and Online Advertising - An Overview and New Perspectives", "year": 2026, "company": null, "venue": "TOIS", "stage": "survey", "themes": [], "stars": 0, "note": "Repo's own TOIS 2026 overview of DLTR in search, rec & advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/00_Overview/2026%20%28TOIS%29%20%5BDLTR%5D%20Deep%20Learning%20to%20Rank%20in%20Industrial%20Search%20Engines%2C%20Recommender%20Systems%2C%20and%20Online%20Advertising%20-%20An%20Overview%20and%20New%20Perspectives.pdf", "listed": 1}, {"id": "rlsurvey", "type": "paper", "label": "RL-Survey", "title": "2019 (Sigweb) Deep Reinforcement Learning for Search, Recommendation, and Online Advertising - A Survey", "year": 2019, "company": null, "venue": "SIGWEB", "stage": "survey", "themes": [], "stars": 0, "note": "Survey of deep RL across the three industries.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/09_Reinforcement_Learning/2019%20%28Sigweb%29%20Deep%20Reinforcement%20Learning%20for%20Search%2C%20Recommendation%2C%20and%20Online%20Advertising%20-%20A%20Survey.pdf", "listed": 1}, {"id": "factory", "type": "paper", "label": "Factory Floor", "title": "2023 (Google) (Arxiv) On the Factory Floor - ML Engineering for Industrial-Scale Ads Recommendation Models", "year": 2023, "company": "Google", "venue": "arXiv", "stage": "survey", "themes": ["system", "scaling"], "stars": 0, "note": "ML engineering practice for industrial-scale ads models at Google.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2023%20%28Google%29%20%28Arxiv%29%20On%20the%20Factory%20Floor%20-%20ML%20Engineering%20for%20Industrial-Scale%20Ads%20Recommendation%20Models.pdf", "listed": 1}, {"id": "mobius", "type": "paper", "label": "MOBIUS", "title": "2019 (Baidu) (KDD) *[MOBIUS] MOBIUS - Towards the Next Generation of Query-Ad Matching in Baidu's Sponsored Search", "year": 2019, "company": "Baidu", "venue": "KDD", "stage": "retrieval", "themes": [], "stars": 1, "note": "Bi-tower query-ad matching keeping recall relevant for CTR in Baidu sponsored search.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/02_Matching/2019%20%28Baidu%29%20%28KDD%29%20%2A%5BMOBIUS%5D%20MOBIUS%20-%20Towards%20the%20Next%20Generation%20of%20Query-Ad%20Matching%20in%20Baidu%27s%20Sponsored%20Search.pdf", "listed": 1}, {"id": "rare", "type": "paper", "label": "RARE", "title": "2025 (Arxiv) (Tencent) [RARE] Real-time Ad retrieval via LLM-generative Commercial Intention for Sponsored Search Advertising", "year": 2025, "company": "Tencent", "venue": "arXiv", "stage": "retrieval", "themes": ["genllm"], "stars": 0, "note": "LLM-generative commercial intention for real-time ad retrieval in sponsored search.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/02_Matching/LLM_Matching/2025%20%28Arxiv%29%20%28Tencent%29%20%5BRARE%5D%20Real-time%20Ad%20retrieval%20via%20LLM-generative%20Commercial%20Intention%20for%20Sponsored%20Search%20Advertising.pdf", "listed": 1}, {"id": "adgpu", "type": "paper", "label": "GPU-Ad-Retrieval", "title": "2025 (Tencent) (Arxiv) An Efficient Embedding Based Ad Retrieval with GPU-Powered Feature Interaction", "year": 2025, "company": "Tencent", "venue": "arXiv", "stage": "retrieval", "themes": ["feat"], "stars": 0, "note": "Embedding-based ad retrieval with GPU-powered feature interaction.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/02_Matching/2025%20%28Tencent%29%20%28Arxiv%29%20An%20Efficient%20Embedding%20Based%20Ad%20Retrieval%20with%20GPU-Powered%20Feature%20Interaction.pdf", "listed": 1}, {"id": "gin", "type": "paper", "label": "GIN", "title": "2019 (Alibaba) (SIGIR) [GIN] Graph Intention Network for Click-through Rate Prediction in Sponsored Search", "year": 2019, "company": "Alibaba", "venue": "SIGIR", "stage": "retrieval", "themes": ["gnn"], "stars": 0, "note": "Graph intention network for CTR prediction in sponsored search.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/02_Matching/Graph_Neural_Networks/2019%20%28Alibaba%29%20%28SIGIR%29%20%5BGIN%5D%20Graph%20Intention%20Network%20for%20Click-through%20Rate%20Prediction%20in%20Sponsored%20Search.pdf", "listed": 1}, {"id": "gr4ad", "type": "paper", "label": "GR4AD", "title": "2026 (Kuaishou) (Arxiv) [GR4AD] Generative Recommendation for Large-Scale Advertising", "year": 2026, "company": "Kuaishou", "venue": "arXiv", "stage": "generative", "themes": ["genllm"], "stars": 0, "note": "Generative recommendation for large-scale advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2026%20%28Kuaishou%29%20%28Arxiv%29%20%5BGR4AD%5D%20Generative%20Recommendation%20for%20Large-Scale%20Advertising.pdf", "listed": 1}, {"id": "copr", "type": "paper", "label": "COPR", "title": "2023 (Alibaba) (CIKM) [COPR] COPR - Consistency-Oriented Pre-Ranking for Online Advertising", "year": 2023, "company": "Alibaba", "venue": "CIKM", "stage": "prerank", "themes": [], "stars": 0, "note": "Consistency between pre-ranking and ranking for online advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/03_Pre-ranking/2023%20%28Alibaba%29%20%28CIKM%29%20%5BCOPR%5D%20COPR%20-%20Consistency-Oriented%20Pre-Ranking%20for%20Online%20Advertising.pdf", "listed": 1}, {"id": "lrftrl", "type": "paper", "label": "LR-FTRL", "title": "2013 (Google) (KDD) [LR] Ad Click Prediction - a View from the Trenches", "year": 2013, "company": "Google", "venue": "KDD", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "FTRL-proximal online LR for ads CTR at Google - the classic production click model.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2013%20%28Google%29%20%28KDD%29%20%5BLR%5D%20Ad%20Click%20Prediction%20-%20a%20View%20from%20the%20Trenches.pdf", "listed": 1}, {"id": "fblessons", "type": "paper", "label": "FB-Lessons", "title": "2014 (ADKDD) (Facebook) Practical Lessons from Predicting Clicks on Ads at Facebook", "year": 2014, "company": "Meta", "venue": "ADKDD", "stage": "ctr", "themes": [], "stars": 0, "note": "GBDT+LR feature engineering & calibration lessons from Facebook ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2014%20%28ADKDD%29%20%28Facebook%29%20Practical%20Lessons%20from%20Predicting%20Clicks%20on%20Ads%20at%20Facebook.pdf", "listed": 2}, {"id": "lrdisplay", "type": "paper", "label": "LR-Display", "title": "2014 (TIST) Simple and scalable response prediction for display advertising", "year": 2014, "company": "Yahoo", "venue": "TIST", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Layered LR feature model for display-ads response prediction.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Calibration/2014%20%28TIST%29%20Simple%20and%20scalable%20response%20prediction%20for%20display%20advertising.pdf", "listed": 1}, {"id": "twitterctr", "type": "paper", "label": "TW-CTR", "title": "2015 (Twitter) (KDD) Click-through Prediction for Advertising in Twitter Timeline", "year": 2015, "company": "Twitter", "venue": "KDD", "stage": "ctr", "themes": [], "stars": 0, "note": "Ads CTR prediction in the Twitter timeline.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Loss/2015%20%28Twitter%29%20%28KDD%29%20Click-through%20Prediction%20for%20Advertising%20in%20Twitter%20Timeline.pdf", "listed": 1}, {"id": "deepintent", "type": "paper", "label": "DeepIntent", "title": "2016 (KDD) [Deepintent] Deepintent - Learning attentions for online advertising with recurrent neural networks", "year": 2016, "company": "Criteo", "venue": "RecSys", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "RNN attention over ad/display context for online advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2016%20%28KDD%29%20%5BDeepintent%5D%20Deepintent%20-%20Learning%20attentions%20for%20online%20advertising%20with%20recurrent%20neural%20networks.pdf", "listed": 1}, {"id": "ffm", "type": "paper", "label": "FFM", "title": "2016 (Criteo) (Recsys) [FFM] Field-aware Factorization Machines for CTR Prediction", "year": 2016, "company": "Criteo", "venue": "RecSys", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Field-aware FM - Criteo display-ads CTR competition winner.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2016%20%28Criteo%29%20%28Recsys%29%20%5BFFM%5D%20Field-aware%20Factorization%20Machines%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "dcn", "type": "paper", "label": "DCN", "title": "2017 (Google) (ADKDD) [DCN] Deep & CrossNetwork for Ad Click Predictions", "year": 2017, "company": "Google", "venue": "ADKDD", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Explicit feature crossing network for Google ads CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2017%20%28Google%29%20%28ADKDD%29%20%5BDCN%5D%20Deep%20%26%20CrossNetwork%20for%20Ad%20Click%20Predictions.pdf", "listed": 1}, {"id": "deepfm", "type": "paper", "label": "DeepFM", "title": "2017 (Huawei) (IJCAI) [DeepFM] DeepFM - A Factorization-Machine based Neural Network for CTR Prediction", "year": 2017, "company": "Huawei", "venue": "IJCAI", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "FM + DNN with shared embeddings for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2017%20%28Huawei%29%20%20%28IJCAI%29%20%5BDeepFM%5D%20DeepFM%20-%20A%20Factorization-Machine%20based%20Neural%20Network%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "fgcnn", "type": "paper", "label": "FGCNN", "title": "2019 (Huawei) (WWW) [FGCNN] Feature Generation by Convolutional Neural Network for Click-Through Rate Prediction", "year": 2019, "company": "Huawei", "venue": "WWW", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "CNN-generated auxiliary features for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2019%20%28Huawei%29%20%28WWW%29%20%5BFGCNN%5D%20Feature%20Generation%20by%20Convolutional%20Neural%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "din", "type": "paper", "label": "DIN", "title": "2018 (Alibaba) (KDD) **[DIN] Deep Interest Network for Click-Through Rate Prediction", "year": 2018, "company": "Alibaba", "venue": "KDD", "stage": "ctr", "themes": ["seq"], "stars": 2, "note": "Attention over user behaviors - Taobao display ads CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2018%20%28Alibaba%29%20%28KDD%29%20%2A%2A%5BDIN%5D%20Deep%20Interest%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 2}, {"id": "dien", "type": "paper", "label": "DIEN", "title": "2019 (Alibaba) (AAAI) **[DIEN] Deep Interest Evolution Network for Click-Through Rate Prediction", "year": 2019, "company": "Alibaba", "venue": "AAAI", "stage": "ctr", "themes": ["seq"], "stars": 2, "note": "Interest evolution with GRU + attention (AUGRU).", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2019%20%28Alibaba%29%20%28AAAI%29%20%2A%2A%5BDIEN%5D%20Deep%20Interest%20Evolution%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 2}, {"id": "dsin", "type": "paper", "label": "DSIN", "title": "2019 (Alibaba) (IJCAI) [DSIN] Deep Session Interest Network for Click-Through Rate Prediction", "year": 2019, "company": "Alibaba", "venue": "IJCAI", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Session-split interest modeling with self-attention.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2019%20%28Alibaba%29%20%28IJCAI%29%20%5BDSIN%5D%20Deep%20Session%20Interest%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dstn", "type": "paper", "label": "DSTN", "title": "2019 (Alibaba) (KDD) [DSTN] Deep Spatio-Temporal Neural Networks for Click-Through Rate Prediction", "year": 2019, "company": "Alibaba", "venue": "KDD", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Auxiliary contextual ads & spatio-temporal signals for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2019%20%28Alibaba%29%20%28KDD%29%20%5BDSTN%5D%20Deep%20Spatio-Temporal%20Neural%20Networks%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dhan", "type": "paper", "label": "DHAN", "title": "2020 (Alibaba) (SIGIR) [DHAN] Deep Interest with Hierarchical Attention Network for Click-Through Rate Prediction", "year": 2020, "company": "Alibaba", "venue": "SIGIR", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Hierarchical attention over behaviors.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2020%20%28Alibaba%29%20%28SIGIR%29%20%5BDHAN%5D%20Deep%20Interest%20with%20Hierarchical%20Attention%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "mimn", "type": "paper", "label": "MIMN", "title": "2019 (Alibaba) (KDD) [MIMN] Practice on Long Sequential User Behavior Modeling for Click-Through Rate Prediction", "year": 2019, "company": "Alibaba", "venue": "KDD", "stage": "ctr", "themes": ["seq", "system"], "stars": 0, "note": "Memory network + UIC server for lifelong behaviors in production CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling-Longterm/2019%20%28Alibaba%29%20%28KDD%29%20%5BMIMN%5D%20Practice%20on%20Long%20Sequential%20User%20Behavior%20Modeling%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "sim", "type": "paper", "label": "SIM", "title": "2020 (Alibaba) (Arxiv) ** [SIM] Search-based User Interest Modeling with Lifelong Sequential Behavior Data for Click-Through Rate Prediction", "year": 2020, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["seq"], "stars": 2, "note": "Two-stage hard search over lifelong behavior data for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2020%20%28Alibaba%29%20%28Arxiv%29%20%2A%2A%20%5BSIM%5D%20Search-based%20User%20Interest%20Modeling%20with%20Lifelong%20Sequential%20Behavior%20Data%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 2}, {"id": "eta", "type": "paper", "label": "ETA", "title": "2022 (Alibaba) (Arxiv) ** [ETA] Efficient Long Sequential User Data Modeling for Click-Through Rate Prediction", "year": 2022, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["seq"], "stars": 2, "note": "SimHash retrieval of relevant behaviors - efficient lifelong sequence modeling.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2022%20%28Alibaba%29%20%28Arxiv%29%20%2A%2A%20%5BETA%5D%20Efficient%20Long%20Sequential%20User%20Data%20Modeling%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 2}, {"id": "ubr4ctr", "type": "paper", "label": "UBR4CTR", "title": "2020 (SIGIR) [UBR4CTR] User Behavior Retrieval for Click-Through Rate Prediction", "year": 2020, "company": null, "venue": "SIGIR", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Retrieval-style relevant-behavior selection for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling-Longterm/2020%20%28SIGIR%29%20%5BUBR4CTR%5D%20User%20Behavior%20Retrieval%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "sdim", "type": "paper", "label": "SDIM", "title": "2022 (Meituan) (CIKM) [SDIM] Sampling Is All You Need on Modeling Long-Term User Behaviors for CTR Prediction", "year": 2022, "company": "Meituan", "venue": "CIKM", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Hash-sampling of long-term behaviors for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling-Longterm/2022%20%28Meituan%29%20%28CIKM%29%20%5BSDIM%5D%20Sampling%20Is%20All%20You%20Need%20on%20Modeling%20Long-Term%20User%20Behaviors%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "twin", "type": "paper", "label": "TWIN", "title": "2023 (Kuaishou) (Arixiv) [TWIN] TWIN - TWo-stage Interest Network for Lifelong User Behavior Modeling in CTR Prediction at Kuaishou", "year": 2023, "company": "Kuaishou", "venue": "arXiv", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "End-to-end lifelong behavior modeling with consolidated twin towers at Kuaishou ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2023%20%28Kuaishou%29%20%28Arixiv%29%20%5BTWIN%5D%20TWIN%20-%20TWo-stage%20Interest%20Network%20for%20Lifelong%20User%20Behavior%20Modeling%20in%20CTR%20Prediction%20at%20Kuaishou.pdf", "listed": 2}, {"id": "twin2", "type": "paper", "label": "TWINv2", "title": "2024 (Kuaishou) (CIKM) [TWINv2] TWIN V2 - Scaling Ultra-Long User Behavior Sequence Modeling for Enhanced CTR Prediction at Kuaishou", "year": 2024, "company": "Kuaishou", "venue": "CIKM", "stage": "ctr", "themes": ["seq", "scaling"], "stars": 0, "note": "Ultra-long behavior sequence modeling for CTR at Kuaishou.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2024%20%28Kuaishou%29%20%28CIKM%29%20%5BTWINv2%5D%20TWIN%20V2%20-%20Scaling%20Ultra-Long%20User%20Behavior%20Sequence%20Modeling%20for%20Enhanced%20CTR%20Prediction%20at%20Kuaishou.pdf", "listed": 2}, {"id": "kfatt", "type": "paper", "label": "KFAtt", "title": "2020 (JD) (NIPS) [KFAtt] Kalman Filtering Attention for User Behavior Modeling in CTR Prediction", "year": 2020, "company": "JD", "venue": "NeurIPS", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Kalman-filtering attention for user behavior modeling in CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2020%20%28JD%29%20%28NIPS%29%20%5BKFAtt%5D%20Kalman%20Filtering%20Attention%20for%20User%20Behavior%20Modeling%20in%20CTR%20Prediction.pdf", "listed": 1}, {"id": "racp", "type": "paper", "label": "RACP", "title": "2022 (Alibaba) (WSDM) Modeling Users’ Contextualized Page-wise Feedback for Click-Through Rate Prediction in E-commerce Search", "year": 2022, "company": "Alibaba", "venue": "WSDM", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Page-wise contextual feedback modeling for e-commerce search CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2022%20%28Alibaba%29%20%28WSDM%29%20Modeling%20Users%E2%80%99%20Contextualized%20Page-wise%20Feedback%20for%20Click-Through%20Rate%20Prediction%20in%20E-commerce%20Search.pdf", "listed": 1}, {"id": "jdimplicit", "type": "paper", "label": "Implicit-UA", "title": "2022 (JD) (WWW) Implicit User Awareness Modeling via Candidate Items for CTR Prediction in Search Ads", "year": 2022, "company": "JD", "venue": "WWW", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Candidate-aware user modeling for CTR in search ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2022%20%28JD%29%20%28WWW%29%20Implicit%20User%20Awareness%20Modeling%20via%20Candidate%20Items%20for%20CTR%20Prediction%20in%20Search%20Ads.pdf", "listed": 1}, {"id": "iui", "type": "paper", "label": "IUI", "title": "2023 (JD) (CIKM) [IUI] IUI - Intent-Enhanced User Interest Modeling for Click-Through Rate Prediction", "year": 2023, "company": "JD", "venue": "CIKM", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Intent-enhanced interest modeling for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2023%20%28JD%29%20%28CIKM%29%20%5BIUI%5D%20IUI%20-%20Intent-Enhanced%20User%20Interest%20Modeling%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dcin", "type": "paper", "label": "DCIN", "title": "2023 (Meituan) (CIKM) [DCIN] Deep Context Interest Network for Click-Through Rate Prediction", "year": 2023, "company": "Meituan", "venue": "CIKM", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Deep context + interest modeling for CTR at Meituan.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Sequence-Modeling/2023%20%28Meituan%29%20%28CIKM%29%20%5BDCIN%5D%20Deep%20Context%20Interest%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dihn", "type": "paper", "label": "DIHN", "title": "2022 (Alibaba) (WWW) Deep Interest Highlight Network for Click-Through Rate Prediction in Trigger-Induced Recommendation", "year": 2022, "company": "Alibaba", "venue": "WWW", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Interest highlighting for trigger-induced recommendation ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Trigger/2022%20%28Alibaba%29%20%28WWW%29%20Deep%20Interest%20Highlight%20Network%20for%20Click-Through%20Rate%20Prediction%20in%20Trigger-Induced%20Recommendation.pdf", "listed": 1}, {"id": "lrea", "type": "paper", "label": "LREA", "title": "2025 (Alibaba) (Arxiv) [LREA] Efficient Long Sequential Low-rank Adaptive Attention for Click-through rate Prediction", "year": 2025, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Low-rank adaptive attention for very long sequences in CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2025%20%28Alibaba%29%20%28Arxiv%29%20%5BLREA%5D%20Efficient%20Long%20Sequential%20Low-rank%20Adaptive%20Attention%20for%20Click-through%20rate%20Prediction.pdf", "listed": 1}, {"id": "bahe", "type": "paper", "label": "BAHE", "title": "2024 (Alibaba) (Arxiv) [BAHE] Breaking the Length Barrier - LLM-Enhanced CTR Prediction in Long Textual User Behaviors", "year": 2024, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["seq", "genllm"], "stars": 0, "note": "LLM-encoded long textual behaviors for CTR with split encoding.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2024%20%28Alibaba%29%20%28Arxiv%29%20%5BBAHE%5D%20Breaking%20the%20Length%20Barrier%20-%20LLM-Enhanced%20CTR%20Prediction%20in%20Long%20Textual%20User%20Behaviors.pdf", "listed": 1}, {"id": "dhen", "type": "paper", "label": "DHEN", "title": "2022 (Meta) ** (Arxiv) DHEN - A Deep and Hierarchical Ensemble Network for Large-Scale Click-Through Rate Prediction", "year": 2022, "company": "Meta", "venue": "arXiv", "stage": "ctr", "themes": ["scaling", "feat"], "stars": 2, "note": "Deep & hierarchical ensemble network for large-scale CTR at Meta.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2022%20%28Meta%29%20%2A%2A%20%28Arxiv%29%20DHEN%20-%20A%20Deep%20and%20Hierarchical%20Ensemble%20Network%20for%20Large-Scale%20Click-Through%20Rate%20Prediction.pdf", "listed": 3}, {"id": "est", "type": "paper", "label": "EST", "title": "2026 (Alibaba) (Arxiv) [EST] EST - Towards Efficient Scaling Laws in Click-Through Rate Prediction via Unified Modeling", "year": 2026, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["scaling"], "stars": 0, "note": "Efficient scaling laws in CTR prediction via unified modeling.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2026%20%28Alibaba%29%20%28Arxiv%29%20%5BEST%5D%20EST%20-%20Towards%20Efficient%20Scaling%20Laws%20in%20Click-Through%20Rate%20Prediction%20via%20Unified%20Modeling.pdf", "listed": 1}, {"id": "srp4ctr", "type": "paper", "label": "SRP4CTR", "title": "2024 (Meituan) (Arxiv) [SRP4CTR] Enhancing CTR Prediction through Sequential Recommendation Pre-training - Introducing the SRP4CTR Framework", "year": 2024, "company": "Meituan", "venue": "arXiv", "stage": "ctr", "themes": ["seq"], "stars": 0, "note": "Sequential-recommendation pre-training to enhance CTR prediction.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2024%20%28Meituan%29%20%28Arxiv%29%20%5BSRP4CTR%5D%20Enhancing%20CTR%20Prediction%20through%20Sequential%20Recommendation%20Pre-training%20-%20Introducing%20the%20SRP4CTR%20Framework.pdf", "listed": 1}, {"id": "hyformer", "type": "paper", "label": "HyFormer", "title": "2026 (Bytedance) (Arxiv) [HyFormer] HyFormer - Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction", "year": 2026, "company": "Bytedance", "venue": "arXiv", "stage": "ctr", "themes": ["seq", "feat"], "stars": 0, "note": "Unifying sequence modeling and feature interaction in one transformer for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2026%20%28Bytedance%29%20%28Arxiv%29%20%5BHyFormer%5D%20HyFormer%20-%20Revisiting%20the%20Roles%20of%20Sequence%20Modeling%20and%20Feature%20Interaction%20in%20CTR%20Prediction.pdf", "listed": 1}, {"id": "tm20k", "type": "paper", "label": "TM20K", "title": "2026 (Bytedance) (Arxiv) [TM20K] Teacher Retains Full Tokens, Student Merges Efficiently - TM20K for E-Commerce Sequence Modeling in Ad Recommendation", "year": 2026, "company": "Bytedance", "venue": "arXiv", "stage": "ctr", "themes": ["seq", "distill"], "stars": 0, "note": "10k-sequence modeling with token-merging distillation for e-commerce ad recommendation.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2026%20%28Bytedance%29%20%28Arxiv%29%20%5BTM20K%5D%20Teacher%20Retains%20Full%20Tokens%2C%20Student%20Merges%20Efficiently%20-%20TM20K%20for%20E-Commerce%20Sequence%20Modeling%20in%20Ad%20Recommendation.pdf", "listed": 1}, {"id": "fibinet", "type": "paper", "label": "FiBiNET", "title": "2019 (Sina) (Recsys) [FiBiNET] FiBiNET - combining feature importance and bilinear feature interaction for click-through rate prediction", "year": 2019, "company": "Sina", "venue": "RecSys", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "SENet feature importance + bilinear interactions for Weibo ads CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Gating/2019%20%28Sina%29%20%28Recsys%29%20%5BFiBiNET%5D%20FiBiNET%20-%20combining%20feature%20importance%20and%20bilinear%20feature%20interaction%20for%20click-through%20rate%20prediction.pdf", "listed": 1}, {"id": "gatenet", "type": "paper", "label": "GateNet", "title": "2020 (Sina) (Arxiv) [GateNet] GateNet - Gating-Enhanced Deep Network for Click-Through Rate Prediction", "year": 2020, "company": "Sina", "venue": "arXiv", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Feature-level gating for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Gating/2020%20%28Sina%29%20%28Arxiv%29%20%5BGateNet%5D%20GateNet%20-%20Gating-Enhanced%20Deep%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "contextnet", "type": "paper", "label": "ContextNet", "title": "2021 (Sina) (Arxiv) [ContextNet] ContextNet - A Click-Through Rate Prediction Framework Using Contextual information to Refine Feature Embedding", "year": 2021, "company": "Sina", "venue": "arXiv", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Contextual refinement of feature embeddings for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Gating/2021%20%28Sina%29%20%28Arxiv%29%20%5BContextNet%5D%20ContextNet%20-%20A%20Click-Through%20Rate%20Prediction%20Framework%20Using%20Contextual%20information%20to%20Refine%20Feature%20Embedding.pdf", "listed": 1}, {"id": "masknet", "type": "paper", "label": "MaskNet", "title": "2021 (Sina) （DLP-KDD) [MaskNet] MaskNet - Introducing Feature-Wise Multiplication to CTR Ranking Models by Instance-Guided Mask", "year": 2021, "company": "Sina", "venue": "DLP-KDD", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Instance-guided feature-wise masks for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Gating/2021%20%28Sina%29%20%EF%BC%88DLP-KDD%29%20%5BMaskNet%5D%20MaskNet%20-%20Introducing%20Feature-Wise%20Multiplication%20to%20CTR%20Ranking%20Models%20by%20Instance-Guided%20Mask.pdf", "listed": 1}, {"id": "fibinet2", "type": "paper", "label": "FiBiNET++", "title": "2023 (Sina) (CIKM) [FiBiNet++] FiBiNet++ - Reducing Model Size by Low Rank Feature Interaction Layer for CTR Prediction", "year": 2023, "company": "Sina", "venue": "CIKM", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Low-rank bilinear interaction layer for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Gating/2023%20%28Sina%29%20%28CIKM%29%20%5BFiBiNet%2B%2B%5D%20FiBiNet%2B%2B%20-%20Reducing%20Model%20Size%20by%20Low%20Rank%20Feature%20Interaction%20Layer%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "canvideo", "type": "paper", "label": "CAN-Video", "title": "2020 (Baidu) (KDD) [CAN] Combo-Attention Network for Baidu Video Advertising", "year": 2020, "company": "Baidu", "venue": "KDD", "stage": "ctr", "themes": ["mm"], "stars": 0, "note": "Combo-attention for Baidu video advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2020%20%28Baidu%29%20%28KDD%29%20%5BCAN%5D%20Combo-Attention%20Network%20for%20Baidu%20Video%20Advertising.pdf", "listed": 1}, {"id": "can", "type": "paper", "label": "CAN", "title": "2022 (Alibaba) (WSDM) * [CAN] CAN - Feature Co-Action Network for Click-Through Rate Prediction", "year": 2022, "company": "Alibaba", "venue": "WSDM", "stage": "ctr", "themes": ["feat"], "stars": 1, "note": "Parameterized co-action unit between features for Taobao display ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2022%20%28Alibaba%29%20%28WSDM%29%20%2A%20%20%5BCAN%5D%20CAN%20-%20Feature%20Co-Action%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "memonet", "type": "paper", "label": "MemoNet", "title": "2023 (Sina) (CIKM) [MemoNet] MemoNet - Memorizing All Cross Features’ Representations Efficiently via Multi-Hash Codebook Network for CTR Prediction", "year": 2023, "company": "Sina", "venue": "CIKM", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Multi-hash codebooks memorizing cross-feature representations.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2023%20%28Sina%29%20%28CIKM%29%20%5BMemoNet%5D%20MemoNet%20-%20Memorizing%20All%20Cross%20Features%E2%80%99%20Representations%20Efficiently%20via%20Multi-Hash%20Codebook%20Network%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "gdcn", "type": "paper", "label": "GDCN", "title": "2023 (CIKM) * [GDCN] Towards Deeper, Lighter and Interpretable Cross Network for CTR Prediction", "year": 2023, "company": null, "venue": "CIKM", "stage": "ctr", "themes": ["feat"], "stars": 1, "note": "Improved crossed-field network for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2023%20%28CIKM%29%20%2A%20%5BGDCN%5D%20Towards%20Deeper%2C%20Lighter%20and%20Interpretable%20Cross%20Network%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "interformer", "type": "paper", "label": "InterFormer", "title": "2025 (Meta) (CIKM) [InterFormer] InterFormer - Effective Heterogeneous Interaction Learning for Click-Through Rate Prediction", "year": 2025, "company": "Meta", "venue": "CIKM", "stage": "ctr", "themes": ["feat", "scaling"], "stars": 0, "note": "Heterogeneous feature interaction at Meta ads scale.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2025%20%28Meta%29%20%28CIKM%29%20%5BInterFormer%5D%20InterFormer%20-%20Effective%20Heterogeneous%20Interaction%20Learning%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dmoe", "type": "paper", "label": "D-MoE", "title": "2025 (Tencent) (Arxiv) [D-MoE] Enhancing CTR Prediction with De-correlated Expert Networks", "year": 2025, "company": "Tencent", "venue": "arXiv", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "De-correlated expert networks for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2025%20%28Tencent%29%20%28Arxiv%29%20%5BD-MoE%5D%20Enhancing%20CTR%20Prediction%20with%20De-correlated%20Expert%20Networks.pdf", "listed": 1}, {"id": "fat", "type": "paper", "label": "FAT", "title": "2025 （Alibaba) [FAT] From Scaling to Structured Expressivity - Rethinking Transformers for CTR Prediction", "year": 2025, "company": "Alibaba", "venue": "arXiv", "stage": "ctr", "themes": ["feat", "scaling"], "stars": 0, "note": "Rethinking transformer expressivity for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2025%20%EF%BC%88Alibaba%29%20%5BFAT%5D%20From%20Scaling%20to%20Structured%20Expressivity%20-%20Rethinking%20Transformers%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "lpfs", "type": "paper", "label": "LPFS", "title": "2022 (Kuaishou) (Arxiv) [LPFS] LPFS - Learnable Polarizing Feature Selection for Click-Through Rate Prediction", "year": 2022, "company": "Kuaishou", "venue": "arXiv", "stage": "ctr", "themes": ["feat"], "stars": 0, "note": "Learnable feature selection for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature_Importance/2022%20%28Kuaishou%29%20%28Arxiv%29%20%5BLPFS%5D%20LPFS%20-%20Learnable%20Polarizing%20Feature%20Selection%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "gemnn", "type": "paper", "label": "GemNN", "title": "2021 (Baidu) (SIGIR) [GemNN] GemNN - Gating-Enhanced Multi-Task Neural Networks with Feature Interaction Learning for CTR Prediction", "year": 2021, "company": "Baidu", "venue": "SIGIR", "stage": "ctr", "themes": ["feat", "mtl"], "stars": 0, "note": "Early feature fusion + multi-task gating for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2021%20%28Baidu%29%20%28SIGIR%29%20%5BGemNN%5D%20GemNN%20-%20Gating-Enhanced%20Multi-Task%20Neural%20Networks%20with%20Feature%20Interaction%20Learning%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "deepmcp", "type": "paper", "label": "DeepMCP", "title": "2019 (Alibaba) (IJCAI) [DeepMCP] Representation Learning-Assisted Click-Through Rate Prediction", "year": 2019, "company": "Alibaba", "venue": "IJCAI", "stage": "ctr", "themes": ["mtl"], "stars": 0, "note": "Joint matching & ranking representations for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Pre-training/2019%20%28Alibaba%29%20%28IJCAI%29%20%5BDeepMCP%5D%20Representation%20Learning-Assisted%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "minet", "type": "paper", "label": "MiNet", "title": "2020 (Alibaba)(CIKM) [MiNet] MiNet - Mixed Interest Network for Cross-Domain Click-Through Rate Prediction", "year": 2020, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["domain"], "stars": 0, "note": "Cross-domain (news feed ads) mixed interests for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2020%20%28Alibaba%29%28CIKM%29%20%5BMiNet%5D%20MiNet%20-%20Mixed%20Interest%20Network%20for%20Cross-Domain%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "star", "type": "paper", "label": "STAR", "title": "2021 (Alibaba) (CIKM) [STAR] One Model to Serve All - Star Topology Adaptive Recommender for Multi-Domain CTR Prediction", "year": 2021, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["domain"], "stars": 0, "note": "Star topology multi-domain CTR for Alibaba display ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2021%20%28Alibaba%29%20%28CIKM%29%20%5BSTAR%5D%20One%20Model%20to%20Serve%20All%20-%20Star%20Topology%20Adaptive%20Recommender%20for%20Multi-Domain%20CTR%20Prediction.pdf", "listed": 1}, {"id": "adasparse", "type": "paper", "label": "AdaSparse", "title": "2022 (Alibaba) (CIKM) AdaSparse - Learning Adaptively Sparse Structures for Multi-Domain Click-Through Rate Prediction", "year": 2022, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["domain"], "stars": 0, "note": "Learned sparsity per scenario for multi-domain CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2022%20%28Alibaba%29%20%28CIKM%29%20AdaSparse%20-%20Learning%20Adaptively%20Sparse%20Structures%20for%20Multi-Domain%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "apg", "type": "paper", "label": "APG", "title": "2022 (Alibaba) (NIPS) ** [APG] APG - Adaptive Parameter Generation Network for Click-Through Rate Prediction", "year": 2022, "company": "Alibaba", "venue": "NeurIPS", "stage": "ctr", "themes": ["domain"], "stars": 2, "note": "Scenario-conditioned parameter generation for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2022%20%28Alibaba%29%20%28NIPS%29%20%2A%2A%20%5BAPG%5D%20APG%20-%20Adaptive%20Parameter%20Generation%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "hc2", "type": "paper", "label": "HC2", "title": "2023 (Alibaba) (CIKM) [HC2] Hybrid Contrastive Constraints for Multi-Scenario Ad Ranking", "year": 2023, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["domain"], "stars": 0, "note": "Contrastive constraints across scenarios for ad ranking.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2023%20%28Alibaba%29%20%28CIKM%29%20%5BHC2%5D%20Hybrid%20Contrastive%20Constraints%20for%20Multi-Scenario%20Ad%20Ranking.pdf", "listed": 1}, {"id": "mmn", "type": "paper", "label": "MMN", "title": "2023 (Alibaba) (CIKM) [MMN] Masked Multi-Domain Network - Multi-Type and Multi-Scenario Conversion Rate Prediction with a Single Model", "year": 2023, "company": "Alibaba", "venue": "CIKM", "stage": "cvr", "themes": ["domain", "mtl"], "stars": 0, "note": "Multi-type multi-scenario CVR with a single model.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2023%20%28Alibaba%29%20%28CIKM%29%20%5BMMN%5D%20Masked%20Multi-Domain%20Network%20-%20Multi-Type%20and%20Multi-Scenario%20Conversion%20Rate%20Prediction%20with%20a%20Single%20Model.pdf", "listed": 1}, {"id": "rec4ad", "type": "paper", "label": "Rec4Ad", "title": "2023 (Alibaba) (CIKM) [Rec4Ad] Rec4Ad - A Free Lunch to Mitigate Sample Selection Bias for Ads CTR Prediction in Taobao", "year": 2023, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["domain", "debias"], "stars": 0, "note": "Recommendation data mitigating sample-selection bias for ads CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2023%20%28Alibaba%29%20%28CIKM%29%20%5BRec4Ad%5D%20Rec4Ad%20-%20A%20Free%20Lunch%20to%20Mitigate%20Sample%20Selection%20Bias%20for%20Ads%20CTR%20Prediction%20in%20Taobao.pdf", "listed": 1}, {"id": "dffm", "type": "paper", "label": "DFFM", "title": "2023 (Huawei) (CIKM) [DFFM] DFFM - Domain Facilitated Feature Modeling for CTR Prediction", "year": 2023, "company": "Huawei", "venue": "CIKM", "stage": "ctr", "themes": ["domain", "feat"], "stars": 0, "note": "Domain-aware feature modeling for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2023%20%28Huawei%29%20%28CIKM%29%20%5BDFFM%5D%20DFFM%20-%20Domain%20Facilitated%20Feature%20Modeling%20for%20CTR%20Prediction.pdf", "listed": 1}, {"id": "safi", "type": "paper", "label": "Scenario-Adaptive-FI", "title": "2023 (Tencent) (KDD) Scenario-Adaptive Feature Interaction for Click-Through Rate Prediction", "year": 2023, "company": "Tencent", "venue": "KDD", "stage": "ctr", "themes": ["domain", "feat"], "stars": 0, "note": "Scenario-adaptive feature interaction for CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2023%20%28Tencent%29%20%28KDD%29%20Scenario-Adaptive%20Feature%20Interaction%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "mlora", "type": "paper", "label": "MLoRA", "title": "2024 (Alibaba) (RecSys) * [MLoRA] MLoRA - Multi-Domain Low-Rank Adaptive Network for Click-Through Rate Prediction", "year": 2024, "company": "Alibaba", "venue": "RecSys", "stage": "ctr", "themes": ["domain"], "stars": 1, "note": "Low-rank scenario adapters for multi-domain CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2024%20%28Alibaba%29%20%28RecSys%29%20%2A%20%5BMLoRA%5D%20MLoRA%20-%20Multi-Domain%20Low-Rank%20Adaptive%20Network%20for%20Click-Through%20Rate%20Prediction.pdf", "listed": 1}, {"id": "lcn", "type": "paper", "label": "LCN", "title": "2024 (Tencent) (KDD) [LCN] Cross-Domain LifeLong Sequential Modeling for Online Click-Through Rate Prediction", "year": 2024, "company": "Tencent", "venue": "KDD", "stage": "ctr", "themes": ["domain", "seq"], "stars": 0, "note": "Cross-domain lifelong sequences for online CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-domain-Multi-Scenario/2024%20%28Tencent%29%20%28KDD%29%20%5BLCN%5D%20Cross-Domain%20LifeLong%20Sequential%20Modeling%20for%20Online%20Click-Through%20Rate%20Prediction.pdf", "listed": 2}, {"id": "stem", "type": "paper", "label": "STEM", "title": "2024 (Tencent) (KDD) [STEM] Ads Recommendation in a Collapsed and Entangled World", "year": 2024, "company": "Tencent", "venue": "KDD", "stage": "ctr", "themes": ["domain", "mtl", "system"], "stars": 0, "note": "Tencent's production framework for collapsed multi-type ads recommendation.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2024%20%28Tencent%29%20%28KDD%29%20%5BSTEM%5D%20Ads%20Recommendation%20in%20a%20Collapsed%20and%20Entangled%20World.pdf", "listed": 1}, {"id": "sum", "type": "paper", "label": "SUM", "title": "2024 (Meta) (Arxiv) [SUM] Scaling User Modeling - Large-scale Online User Representations for Ads Personalization in Meta", "year": 2024, "company": "Meta", "venue": "arXiv", "stage": "ctr", "themes": ["scaling", "system"], "stars": 0, "note": "Large-scale online user representations for ads personalization at Meta.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2024%20%28Meta%29%20%28Arxiv%29%20%5BSUM%5D%20Scaling%20User%20Modeling%20-%20Large-scale%20Online%20User%20Representations%20for%20Ads%20Personalization%20in%20Meta.pdf", "listed": 1}, {"id": "exfm", "type": "paper", "label": "ExFM", "title": "2025 （Meta) (Arxiv) [ExFM] External Large Foundation Model - How to Efficiently Serve Trillions of Parameters for Online Ads Recommendation", "year": 2025, "company": "Meta", "venue": "arXiv", "stage": "ctr", "themes": ["scaling", "distill", "system"], "stars": 0, "note": "Serving trillion-parameter foundation features for online ads recommendation.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2025%20%EF%BC%88Meta%29%20%28Arxiv%29%20%5BExFM%5D%20External%20Large%20Foundation%20Model%20-%20How%20to%20Efficiently%20Serve%20Trillions%20of%20Parameters%20for%20Online%20Ads%20Recommendation.pdf", "listed": 1}, {"id": "llatte", "type": "paper", "label": "LLaTTE", "title": "2026 (Meta) (Arxiv) [LLaTTE] LLaTTE - Scaling Laws for Multi-Stage Sequence Modeling in Large-Scale Ads Recommendation", "year": 2026, "company": "Meta", "venue": "arXiv", "stage": "ctr", "themes": ["scaling", "seq"], "stars": 0, "note": "Scaling laws for multi-stage sequence modeling in Meta ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2026%20%28Meta%29%20%28Arxiv%29%20%5BLLaTTE%5D%20LLaTTE%20-%20Scaling%20Laws%20for%20Multi-Stage%20Sequence%20Modeling%20in%20Large-Scale%20Ads%20Recommendation.pdf", "listed": 1}, {"id": "lattice", "type": "paper", "label": "Meta-Lattice", "title": "2026 (Meta) (KDD) [Lattice] Meta Lattice - Model Space Redesign for Cost-Effective Industry-Scale Ads Recommendations", "year": 2026, "company": "Meta", "venue": "KDD", "stage": "ctr", "themes": ["scaling", "system"], "stars": 0, "note": "Lattice model-space redesign for cost-effective industry-scale ads recommendations.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2026%20%28Meta%29%20%28KDD%29%20%5BLattice%5D%20Meta%20Lattice%20-%20Model%20Space%20Redesign%20for%20Cost-Effective%20Industry-Scale%20Ads%20Recommendations.pdf", "listed": 1}, {"id": "rankup", "type": "paper", "label": "RankUp", "title": "2026 (Tencent) (Arxiv) [RankUp] RankUp - Towards High-rank Representations for Large Scale Advertising Recommender Systems", "year": 2026, "company": "Tencent", "venue": "arXiv", "stage": "ctr", "themes": ["scaling", "feat"], "stars": 0, "note": "High-rank representations for large-scale advertising recommenders.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2026%20%28Tencent%29%20%28Arxiv%29%20%5BRankUp%5D%20RankUp%20-%20Towards%20High-rank%20Representations%20for%20Large%20Scale%20Advertising%20Recommender%20Systems.pdf", "listed": 2}, {"id": "esmm", "type": "paper", "label": "ESMM", "title": "2018 (Alibaba) (SIGIR) [ESMM] Entire Space Multi-Task Model - An Effective Approach for Estimating Post-Click Conversion Rate", "year": 2018, "company": "Alibaba", "venue": "SIGIR", "stage": "cvr", "themes": ["mtl"], "stars": 0, "note": "Entire-space multi-task CVR - eliminates sample-selection bias & data sparsity.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2018%20%28Alibaba%29%20%28SIGIR%29%20%5BESMM%5D%20Entire%20Space%20Multi-Task%20Model%20-%20An%20Effective%20Approach%20for%20Estimating%20Post-Click%20Conversion%20Rate.pdf", "listed": 1}, {"id": "esm2", "type": "paper", "label": "ESM2", "title": "2020 (Alibaba) (SIGIR) [ESM2] Entire Space Multi-Task Modeling via Post-Click Behavior Decomposition for Conversion Rate Prediction", "year": 2020, "company": "Alibaba", "venue": "SIGIR", "stage": "cvr", "themes": ["mtl"], "stars": 0, "note": "Post-click behavior decomposition (CTR -> CTCVR -> CVR).", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2020%20%28Alibaba%29%20%28SIGIR%29%20%5BESM2%5D%20Entire%20Space%20Multi-Task%20Modeling%20via%20Post-Click%20Behavior%20Decomposition%20for%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "causaldebias", "type": "paper", "label": "Causal-Debias", "title": "2020 (Alibaba) (WWW) Large-scale Causal Approaches to Debiasing Post-click Conversion Rate Estimation with Multi-task Learning", "year": 2020, "company": "Alibaba", "venue": "WWW", "stage": "cvr", "themes": ["mtl", "debias"], "stars": 0, "note": "Causal debiasing of post-click conversion estimation.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2020%20%28Alibaba%29%20%28WWW%29%20Large-scale%20Causal%20Approaches%20to%20Debiasing%20Post-click%20Conversion%20Rate%20Estimation%20with%20Multi-task%20Learning.pdf", "listed": 1}, {"id": "hm3", "type": "paper", "label": "HM3", "title": "2021 (Alibaba) (SIGIR) [HM3] Hierarchically Modeling Micro and Macro Behaviors via Multi-Task Learning for Conversion Rate Prediction", "year": 2021, "company": "Alibaba", "venue": "SIGIR", "stage": "cvr", "themes": ["mtl", "seq"], "stars": 0, "note": "Micro & macro behaviors via multi-task learning for CVR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2021%20%28Alibaba%29%20%28SIGIR%29%20%5BHM3%5D%20Hierarchically%20Modeling%20Micro%20and%20Macro%20Behaviors%20via%20Multi-Task%20Learning%20for%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "meituanconv", "type": "paper", "label": "Multi-step-Conv", "title": "2021 (Meituan) (KDD) Modeling the Sequential Dependence among Audience Multi-step Conversions with Multi-task Learning in Targeted Display Advertising", "year": 2021, "company": "Meituan", "venue": "KDD", "stage": "cvr", "themes": ["mtl"], "stars": 0, "note": "Multi-step conversion chains in targeted display ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2021%20%28Meituan%29%20%28KDD%29%20Modeling%20the%20Sequential%20Dependence%20among%20Audience%20Multi-step%20Conversions%20with%20Multi-task%20Learning%20in%20Targeted%20Display%20Advertising.pdf", "listed": 1}, {"id": "mal", "type": "paper", "label": "MAL", "title": "2025 （Alibaba) (CIKM) [MAL] See Beyond a Single View - Multi-Attribution Learning Leads to Better Conversion Rate Prediction", "year": 2025, "company": "Alibaba", "venue": "CIKM", "stage": "cvr", "themes": ["mtl"], "stars": 0, "note": "Multi-attribution learning for better CVR prediction.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-task/2025%20%EF%BC%88Alibaba%29%20%28CIKM%29%20%5BMAL%5D%20See%20Beyond%20a%20Single%20View%20-%20Multi-Attribution%20Learning%20Leads%20to%20Better%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "eslm", "type": "paper", "label": "ESLM", "title": "2023 (Alibaba) (Arxiv) [ESLM] Entire Space Learning Framework - Unbias Conversion Rate Prediction in Full Stages of Recommender System", "year": 2023, "company": "Alibaba", "venue": "arXiv", "stage": "cvr", "themes": ["mtl", "debias"], "stars": 0, "note": "Unbiased CVR across all stages of the recommender.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/2023%20%28Alibaba%29%20%28Arxiv%29%20%5BESLM%5D%20Entire%20Space%20Learning%20Framework%20-%20Unbias%20Conversion%20Rate%20Prediction%20in%20Full%20Stages%20of%20Recommender%20System.pdf", "listed": 1}, {"id": "hapfd", "type": "paper", "label": "HA-PFD", "title": "2025 (Bytedance) (KDD) [HA-PFD] Hardness-aware Privileged Features Distillation with Latent Alignment for CVR Prediction", "year": 2025, "company": "Bytedance", "venue": "KDD", "stage": "cvr", "themes": ["distill"], "stars": 0, "note": "Privileged-feature distillation for CVR at ByteDance.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Distill/2025%20%28Bytedance%29%20%28KDD%29%20%5BHA-PFD%5D%20Hardness-aware%20Privileged%20Features%20Distillation%20with%20Latent%20Alignment%20for%20CVR%20Prediction.pdf", "listed": 1}, {"id": "couponcvr", "type": "paper", "label": "CVR-Scaling", "title": "2026 (Coupon) [Arxiv] On the Practice of Scaling Search Conversion Rate Prediction", "year": 2026, "company": "Coupon", "venue": "arXiv", "stage": "cvr", "themes": ["scaling"], "stars": 0, "note": "Scaling practice for search-ads conversion-rate prediction.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Feature-Crossing/2026%20%28Coupon%29%20%5BArxiv%5D%20On%20the%20Practice%20of%20Scaling%20Search%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "dfm", "type": "paper", "label": "DFM", "title": "2014 (Criteo) (KDD) [DFM] Modeling Delayed Feedback in Display Advertising", "year": 2014, "company": "Criteo", "venue": "KDD", "stage": "delayed", "themes": [], "stars": 0, "note": "The delayed-feedback model: exponential delay + importance weighting.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2014%20%28Criteo%29%20%28KDD%29%20%5BDFM%5D%20Modeling%20Delayed%20Feedback%20in%20Display%20Advertising.pdf", "listed": 1}, {"id": "nodef", "type": "paper", "label": "NoDeF", "title": "2018 (Arxiv) [NoDeF] A Nonparametric Delayed Feedback Model for Conversion Rate Prediction", "year": 2018, "company": null, "venue": "arXiv", "stage": "delayed", "themes": [], "stars": 0, "note": "Nonparametric delay distribution for CVR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2018%20%28Arxiv%29%20%5BNoDeF%5D%20A%20Nonparametric%20Delayed%20Feedback%20Model%20for%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "twitterdf", "type": "paper", "label": "TW-DF", "title": "2019 (Twitter) (RecSys) Addressing Delayed Feedback for Continuous Training with Neural Networks in CTR prediction", "year": 2019, "company": "Twitter", "venue": "RecSys", "stage": "delayed", "themes": [], "stars": 0, "note": "Importance-weighted streaming CVR under delayed feedback.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2019%20%28Twitter%29%20%28RecSys%29%20Addressing%20Delayed%20Feedback%20for%20Continuous%20Training%20with%20Neural%20Networks%20in%20CTR%20prediction.pdf", "listed": 1}, {"id": "tsdl", "type": "paper", "label": "TS-DL", "title": "2020 (JD) (IJCAI) [TS-DL] An Attention-based Model for Conversion Rate Prediction with Delayed Feedback via Post-click Calibration", "year": 2020, "company": "JD", "venue": "IJCAI", "stage": "delayed", "themes": [], "stars": 0, "note": "Post-click calibration + attention for delayed conversions.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2020%20%28JD%29%20%28IJCAI%29%20%5BTS-DL%5D%20An%20Attention-based%20Model%20for%20Conversion%20Rate%20Prediction%20with%20Delayed%20Feedback%20via%20Post-click%20Calibration.pdf", "listed": 1}, {"id": "fsiw", "type": "paper", "label": "FSIW", "title": "2020 (WWW) [FSIW] A Feedback Shift Correction in Predicting Conversion Rates under Delayed Feedback", "year": 2020, "company": null, "venue": "WWW", "stage": "delayed", "themes": [], "stars": 0, "note": "Feedback-shift-corrected CVR under delayed labels.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2020%20%28WWW%29%20%5BFSIW%5D%20A%20Feedback%20Shift%20Correction%20in%20Predicting%20Conversion%20Rates%20under%20Delayed%20Feedback.pdf", "listed": 1}, {"id": "esdfm", "type": "paper", "label": "ES-DFM", "title": "2021 (Alibaba) (AAAI) [ES-DFM] Capturing Delayed Feedback in Conversion Rate Prediction via Elapsed-Time Sampling", "year": 2021, "company": "Alibaba", "venue": "AAAI", "stage": "delayed", "themes": ["mtl"], "stars": 0, "note": "Elapsed-time sampling for delayed feedback in the entire space.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2021%20%28Alibaba%29%20%28AAAI%29%20%5BES-DFM%5D%20Capturing%20Delayed%20Feedback%20in%20Conversion%20Rate%20Prediction%20via%20Elapsed-Time%20Sampling.pdf", "listed": 1}, {"id": "esdf", "type": "paper", "label": "ESDF", "title": "2021 (Alibaba) (AAAI) [ESDF] Delayed Feedback Modeling for the Entire Space Conversion Rate Prediction", "year": 2021, "company": "Alibaba", "venue": "AAAI", "stage": "delayed", "themes": ["mtl"], "stars": 0, "note": "Entire-space DFM variant for CVR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2021%20%28Alibaba%29%20%28AAAI%29%20%5BESDF%5D%20Delayed%20Feedback%20Modeling%20for%20the%20Entire%20Space%20Conversion%20Rate%20Prediction.pdf", "listed": 1}, {"id": "defer", "type": "paper", "label": "Defer", "title": "2021 (Alibaba) (Arxiv) [Defer] Real Negatives Matter - Continuous Training with Real Negatives for Delayed Feedback Modeling", "year": 2021, "company": "Alibaba", "venue": "arXiv", "stage": "delayed", "themes": [], "stars": 0, "note": "Real negatives for delayed-feedback modeling in streaming CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2021%20%28Alibaba%29%20%28Arxiv%29%20%5BDefer%5D%20Real%20Negatives%20Matter%20-%20Continuous%20Training%20with%20Real%20Negatives%20for%20Delayed%20Feedback%20Modeling.pdf", "listed": 1}, {"id": "defuse", "type": "paper", "label": "DEFER", "title": "2022 (Alibaba) (WWW) [DEFUSE] Asymptotically Unbiased Estimation for Delayed Feedback Modeling via Label Correction", "year": 2022, "company": "Alibaba", "venue": "WWW", "stage": "delayed", "themes": [], "stars": 0, "note": "Label correction for asymptotically unbiased delayed-feedback CVR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2022%20%28Alibaba%29%20%28WWW%29%20%5BDEFUSE%5D%20Asymptotically%20Unbiased%20Estimation%20for%20Delayed%20Feedback%20Modeling%20via%20Label%20Correction.pdf", "listed": 1}, {"id": "nbdfm", "type": "paper", "label": "NB-DFM", "title": "2020 (AdKDD) Delayed Feedback Model with Negative Binomial Regression for Multiple Conversions", "year": 2020, "company": null, "venue": "ADKDD", "stage": "delayed", "themes": [], "stars": 0, "note": "Negative-binomial delay for multiple conversions.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2020%20%28AdKDD%29%20Delayed%20Feedback%20Model%20with%20Negative%20Binomial%20Regression%20for%20Multiple%20Conversions.pdf", "listed": 1}, {"id": "manyconv", "type": "paper", "label": "Many-Conv", "title": "2021 (Google) (Arxiv) Handling many conversions per click in modeling delayed feedback", "year": 2021, "company": "Google", "venue": "arXiv", "stage": "delayed", "themes": [], "stars": 0, "note": "Delayed feedback with many conversions per click.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Delayed-Feedback-Problem/2021%20%28Google%29%20%28Arxiv%29%20Handling%20many%20conversions%20per%20click%20in%20modeling%20delayed%20feedback.pdf", "listed": 1}, {"id": "scalecalib", "type": "paper", "label": "Scale-Calib", "title": "2022 (Google) (KDD) Scale Calibration of Deep Ranking Models", "year": 2022, "company": "Google", "venue": "KDD", "stage": "calibration", "themes": [], "stars": 0, "note": "Production calibration of deep ads ranking models.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Experiment/2022%20%28Google%29%20%28KDD%29%20Scale%20Calibration%20of%20Deep%20Ranking%20Models.pdf", "listed": 2}, {"id": "rankcalib", "type": "paper", "label": "Rank-Calib", "title": "2023 (Alibaba) (KDD) Joint Optimization of Ranking and Calibration with Contextualized Hybrid Model", "year": 2023, "company": "Alibaba", "venue": "KDD", "stage": "calibration", "themes": [], "stars": 0, "note": "Contextual hybrid model jointly optimizing ranking loss and calibration.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Loss/2023%20%28Alibaba%29%20%28KDD%29%20Joint%20Optimization%20of%20Ranking%20and%20Calibration%20with%20Contextualized%20Hybrid%20Model.pdf", "listed": 1}, {"id": "masm", "type": "paper", "label": "MASM", "title": "2021 (Alibaba) (WWW) [MASM] Learning a Product Relevance Model from Click-Through Data in E-Commerce", "year": 2021, "company": "Alibaba", "venue": "WWW", "stage": "relevance", "themes": [], "stars": 0, "note": "Product relevance learned from click-through data in e-commerce search.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/06_Relevance-ranking/2021%20%28Alibaba%29%20%28WWW%29%20%5BMASM%5D%20Learning%20a%20Product%20Relevance%20Model%20from%20Click-Through%20Data%20in%20E-Commerce.pdf", "listed": 1}, {"id": "hcmrm", "type": "paper", "label": "HCMRM", "title": "2025 (Kuaishou) (Arxiv) [HCMRM] HCMRM -A High-Consistency Multimodal Relevance Model for Search Ads", "year": 2025, "company": "Kuaishou", "venue": "arXiv", "stage": "relevance", "themes": ["mm"], "stars": 0, "note": "High-consistency multimodal relevance for search ads.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/06_Relevance-ranking/2025%20%28Kuaishou%29%20%28Arxiv%29%20%5BHCMRM%5D%20HCMRM%20-A%20High-Consistency%20Multimodal%20Relevance%20Model%20for%20Search%20Ads.pdf", "listed": 1}, {"id": "gpr", "type": "paper", "label": "GPR", "title": "2025 (Tencent) (Arxiv) [GPR] GPR - Towards a Generative Pre-trained One-Model Paradigm for Large-Scale Advertising Recommendation", "year": 2025, "company": "Tencent", "venue": "arXiv", "stage": "generative", "themes": ["genllm"], "stars": 0, "note": "Generative pre-trained one-model paradigm for large-scale advertising recommendation.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2025%20%28Tencent%29%20%28Arxiv%29%20%5BGPR%5D%20GPR%20-%20Towards%20a%20Generative%20Pre-trained%20One-Model%20Paradigm%20for%20Large-Scale%20Advertising%20Recommendation.pdf", "listed": 1}, {"id": "unirom", "type": "paper", "label": "UniROM", "title": "2025 (Meituan) (Arxiv) [UniROM] One Model to Rank Them All - Unifying Online Advertising with End-to-End Learning", "year": 2025, "company": "Meituan", "venue": "arXiv", "stage": "generative", "themes": ["genllm"], "stars": 0, "note": "End-to-end unified learning across the online advertising pipeline.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2025%20%28Meituan%29%20%28Arxiv%29%20%5BUniROM%5D%20One%20Model%20to%20Rank%20Them%20All%20-%20Unifying%20Online%20Advertising%20with%20End-to-End%20Learning.pdf", "listed": 1}, {"id": "llmdistill", "type": "paper", "label": "LLMDistill4Ads", "title": "2025 (eBay) (Arxiv) LLMDistill4Ads - Using Cross-Encoders to Distill from LLM Signals for Advertiser Keyphrase Recommendations at eBay", "year": 2025, "company": "eBay", "venue": "arXiv", "stage": "generative", "themes": ["genllm", "distill"], "stars": 0, "note": "Cross-encoder distillation of LLM signals for advertiser keyphrase recommendations.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/LLM_Ranking/2025%20%28eBay%29%20%20%28Arxiv%29%20LLMDistill4Ads%20-%20Using%20Cross-Encoders%20to%20Distill%20from%20LLM%20Signals%20for%20Advertiser%20Keyphrase%20Recommendations%20at%20eBay.pdf", "listed": 1}, {"id": "imagectr", "type": "paper", "label": "Image-CTR", "title": "2018 (Alibaba) (CIKM) [Image CTR] Image Matters - Visually Modeling User Behaviors Using Advanced Model Server", "year": 2018, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["mm", "seq"], "stars": 0, "note": "Visual behavior modeling via model server for display-ads CTR.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-Modal/2018%20%28Alibaba%29%20%28CIKM%29%20%5BImage%20CTR%5D%20Image%20Matters%20-%20Visually%20Modeling%20User%20Behaviors%20Using%20Advanced%20Model%20Server.pdf", "listed": 1}, {"id": "taobaomm", "type": "paper", "label": "Taobao-MM", "title": "2024 (Alibaba) (CIKM) Enhancing Taobao Display Advertising with Multimodal Representations - Challenges, Approaches and Insights", "year": 2024, "company": "Alibaba", "venue": "CIKM", "stage": "ctr", "themes": ["mm"], "stars": 0, "note": "Multimodal representations in Taobao display advertising.", "url": "https://github.com/guyulongcs/Deep-Learning-for-Search-Recommendation-Advertisements/blob/master/04_Ranking/Multi-Modal/2024%20%28Alibaba%29%20%28CIKM%29%20Enhancing%20Taobao%20Display%20Advertising%20with%20Multimodal%20Representations%20-%20Challenges%2C%20Approaches%20and%20Insights.pdf", "listed": 1}, {"id": "stage:survey", "type": "stage", "label": "Survey & Systems", "color": "#94a3b8", "desc": "Surveys and production-system retrospectives that span the ads pipeline.", "count": 3}, {"id": "stage:retrieval", "type": "stage", "label": "Ads Retrieval", "color": "#38bdf8", "desc": "Matching / retrieval: finding candidate ads for a query or user request.", "count": 4}, {"id": "stage:prerank", "type": "stage", "label": "Pre-Ranking", "color": "#a78bfa", "desc": "Cheap scoring stage that prunes candidates before fine ranking.", "count": 1}, {"id": "stage:ctr", "type": "stage", "label": "CTR Ranking", "color": "#34d399", "desc": "Fine ranking: click-through-rate prediction models for ads.", "count": 67}, {"id": "stage:cvr", "type": "stage", "label": "CVR & Conversion", "color": "#fbbf24", "desc": "Post-click conversion-rate estimation: entire-space and multi-task modeling.", "count": 10}, {"id": "stage:delayed", "type": "stage", "label": "Delayed Feedback", "color": "#f87171", "desc": "Conversions arrive long after clicks - unbiased modeling under label delay.", "count": 11}, {"id": "stage:calibration", "type": "stage", "label": "Calibration", "color": "#fb923c", "desc": "Keeping predicted probabilities consistent with real outcomes for bidding & ranking.", "count": 2}, {"id": "stage:relevance", "type": "stage", "label": "Relevance", "color": "#e879f9", "desc": "Query-ad / item relevance modeling for search ads.", "count": 2}, {"id": "stage:generative", "type": "stage", "label": "Generative & Unified", "color": "#22d3ee", "desc": "LLM and generative-retrieval paradigms that unify the ads pipeline.", "count": 4}, {"id": "theme:seq", "type": "theme", "label": "Attention & Behavior Sequence", "desc": "User behavior / interest modeling: DIN and its descendants."}, {"id": "theme:feat", "type": "theme", "label": "Feature Interaction & Crossing", "desc": "Explicit feature crossing: FM lineage, DCN, gating, co-action."}, {"id": "theme:mtl", "type": "theme", "label": "Multi-task & Entire Space", "desc": "Multi-task learning and entire-space estimation."}, {"id": "theme:domain", "type": "theme", "label": "Multi-domain & Multi-scenario", "desc": "One model serving many domains / scenarios / ad types."}, {"id": "theme:genllm", "type": "theme", "label": "Generative & LLM", "desc": "Large language models and generative retrieval for ads."}, {"id": "theme:distill", "type": "theme", "label": "Knowledge Distillation", "desc": "Compressing large/privileged teachers into serving models."}, {"id": "theme:scaling", "type": "theme", "label": "Scaling Laws & Foundation", "desc": "Scaling behavior and foundation models for ads ranking."}, {"id": "theme:mm", "type": "theme", "label": "Multimodal", "desc": "Visual / multimodal signals in ads CTR and relevance."}, {"id": "theme:gnn", "type": "theme", "label": "Graph Neural Networks", "desc": "Graph-based intention / behavior modeling."}, {"id": "theme:system", "type": "theme", "label": "System & Infrastructure", "desc": "Serving systems, memory, and industrial engineering."}, {"id": "theme:debias", "type": "theme", "label": "Debiasing & Sample Selection", "desc": "Selection bias and causal debiasing for conversion estimation."}, {"id": "co:alibaba", "type": "company", "label": "Alibaba"}, {"id": "co:meta", "type": "company", "label": "Meta / Facebook"}, {"id": "co:google", "type": "company", "label": "Google"}, {"id": "co:tencent", "type": "company", "label": "Tencent"}, {"id": "co:kuaishou", "type": "company", "label": "Kuaishou"}, {"id": "co:baidu", "type": "company", "label": "Baidu"}, {"id": "co:jd", "type": "company", "label": "JD.com"}, {"id": "co:meituan", "type": "company", "label": "Meituan"}, {"id": "co:sina", "type": "company", "label": "Sina"}, {"id": "co:criteo", "type": "company", "label": "Criteo"}, {"id": "co:twitter", "type": "company", "label": "Twitter / X"}, {"id": "co:huawei", "type": "company", "label": "Huawei"}, {"id": "co:bytedance", "type": "company", "label": "Bytedance"}, {"id": "co:ebay", "type": "company", "label": "eBay"}, {"id": "co:yahoo", "type": "company", "label": "Yahoo"}, {"id": "co:coupon", "type": "company", "label": "Coupon (search)"}, {"id": "venue:AAAI", "type": "venue", "label": "AAAI"}, {"id": "venue:ADKDD", "type": "venue", "label": "ADKDD"}, {"id": "venue:CIKM", "type": "venue", "label": "CIKM"}, {"id": "venue:DLP-KDD", "type": "venue", "label": "DLP-KDD"}, {"id": "venue:IJCAI", "type": "venue", "label": "IJCAI"}, {"id": "venue:KDD", "type": "venue", "label": "KDD"}, {"id": "venue:NeurIPS", "type": "venue", "label": "NeurIPS"}, {"id": "venue:RecSys", "type": "venue", "label": "RecSys"}, {"id": "venue:SIGIR", "type": "venue", "label": "SIGIR"}, {"id": "venue:SIGWEB", "type": "venue", "label": "SIGWEB"}, {"id": "venue:TIST", "type": "venue", "label": "TIST"}, {"id": "venue:TOIS", "type": "venue", "label": "TOIS"}, {"id": "venue:WSDM", "type": "venue", "label": "WSDM"}, {"id": "venue:WWW", "type": "venue", "label": "WWW"}, {"id": "venue:arXiv", "type": "venue", "label": "arXiv"}], "edges": [{"s": "dltr", "t": "stage:survey", "r": "stage"}, {"s": "dltr", "t": "venue:TOIS", "r": "venue"}, {"s": "rlsurvey", "t": "stage:survey", "r": "stage"}, {"s": "rlsurvey", "t": "venue:SIGWEB", "r": "venue"}, {"s": "factory", "t": "stage:survey", "r": "stage"}, {"s": "factory", "t": "theme:system", "r": "theme"}, {"s": "factory", "t": "theme:scaling", "r": "theme"}, {"s": "factory", "t": "co:google", "r": "company"}, {"s": "factory", "t": "venue:arXiv", "r": "venue"}, {"s": "mobius", "t": "stage:retrieval", "r": "stage"}, {"s": "mobius", "t": "co:baidu", "r": "company"}, {"s": "mobius", "t": "venue:KDD", "r": "venue"}, {"s": "rare", "t": "stage:retrieval", "r": "stage"}, {"s": "rare", "t": "theme:genllm", "r": "theme"}, {"s": "rare", "t": "co:tencent", "r": "company"}, {"s": "rare", "t": "venue:arXiv", "r": "venue"}, {"s": "adgpu", "t": "stage:retrieval", "r": "stage"}, {"s": "adgpu", "t": "theme:feat", "r": "theme"}, {"s": "adgpu", "t": "co:tencent", "r": "company"}, {"s": "adgpu", "t": "venue:arXiv", "r": "venue"}, {"s": "gin", "t": "stage:retrieval", "r": "stage"}, {"s": "gin", "t": "theme:gnn", "r": "theme"}, {"s": "gin", "t": "co:alibaba", "r": "company"}, {"s": "gin", "t": "venue:SIGIR", "r": "venue"}, {"s": "gr4ad", "t": "stage:generative", "r": "stage"}, {"s": "gr4ad", "t": "theme:genllm", "r": "theme"}, {"s": "gr4ad", "t": "co:kuaishou", "r": "company"}, {"s": "gr4ad", "t": "venue:arXiv", "r": "venue"}, {"s": "copr", "t": "stage:prerank", "r": "stage"}, {"s": "copr", "t": "co:alibaba", "r": "company"}, {"s": "copr", "t": "venue:CIKM", "r": "venue"}, {"s": "lrftrl", "t": "stage:ctr", "r": "stage"}, {"s": "lrftrl", "t": "theme:feat", "r": "theme"}, {"s": "lrftrl", "t": "co:google", "r": "company"}, {"s": "lrftrl", "t": "venue:KDD", "r": "venue"}, {"s": "fblessons", "t": "stage:ctr", "r": "stage"}, {"s": "fblessons", "t": "co:meta", "r": "company"}, {"s": "fblessons", "t": "venue:ADKDD", "r": "venue"}, {"s": "lrdisplay", "t": "stage:ctr", "r": "stage"}, {"s": "lrdisplay", "t": "theme:feat", "r": "theme"}, {"s": "lrdisplay", "t": "co:yahoo", "r": "company"}, {"s": "lrdisplay", "t": "venue:TIST", "r": "venue"}, {"s": "twitterctr", "t": "stage:ctr", "r": "stage"}, {"s": "twitterctr", "t": "co:twitter", "r": "company"}, {"s": "twitterctr", "t": "venue:KDD", "r": "venue"}, {"s": "deepintent", "t": "stage:ctr", "r": "stage"}, {"s": "deepintent", "t": "theme:seq", "r": "theme"}, {"s": "deepintent", "t": "co:criteo", "r": "company"}, {"s": "deepintent", "t": "venue:RecSys", "r": "venue"}, {"s": "ffm", "t": "stage:ctr", "r": "stage"}, {"s": "ffm", "t": "theme:feat", "r": "theme"}, {"s": "ffm", "t": "co:criteo", "r": "company"}, {"s": "ffm", "t": "venue:RecSys", "r": "venue"}, {"s": "dcn", "t": "stage:ctr", "r": "stage"}, {"s": "dcn", "t": "theme:feat", "r": "theme"}, {"s": "dcn", "t": "co:google", "r": "company"}, {"s": "dcn", "t": "venue:ADKDD", "r": "venue"}, {"s": "deepfm", "t": "stage:ctr", "r": "stage"}, {"s": "deepfm", "t": "theme:feat", "r": "theme"}, {"s": "deepfm", "t": "co:huawei", "r": "company"}, {"s": "deepfm", "t": "venue:IJCAI", "r": "venue"}, {"s": "fgcnn", "t": "stage:ctr", "r": "stage"}, {"s": "fgcnn", "t": "theme:feat", "r": "theme"}, {"s": "fgcnn", "t": "co:huawei", "r": "company"}, {"s": "fgcnn", "t": "venue:WWW", "r": "venue"}, {"s": "din", "t": "stage:ctr", "r": "stage"}, {"s": "din", "t": "theme:seq", "r": "theme"}, {"s": "din", "t": "co:alibaba", "r": "company"}, {"s": "din", "t": "venue:KDD", "r": "venue"}, {"s": "dien", "t": "stage:ctr", "r": "stage"}, {"s": "dien", "t": "theme:seq", "r": "theme"}, {"s": "dien", "t": "co:alibaba", "r": "company"}, {"s": "dien", "t": "venue:AAAI", "r": "venue"}, {"s": "dsin", "t": "stage:ctr", "r": "stage"}, {"s": "dsin", "t": "theme:seq", "r": "theme"}, {"s": "dsin", "t": "co:alibaba", "r": "company"}, {"s": "dsin", "t": "venue:IJCAI", "r": "venue"}, {"s": "dstn", "t": "stage:ctr", "r": "stage"}, {"s": "dstn", "t": "theme:seq", "r": "theme"}, {"s": "dstn", "t": "co:alibaba", "r": "company"}, {"s": "dstn", "t": "venue:KDD", "r": "venue"}, {"s": "dhan", "t": "stage:ctr", "r": "stage"}, {"s": "dhan", "t": "theme:seq", "r": "theme"}, {"s": "dhan", "t": "co:alibaba", "r": "company"}, {"s": "dhan", "t": "venue:SIGIR", "r": "venue"}, {"s": "mimn", "t": "stage:ctr", "r": "stage"}, {"s": "mimn", "t": "theme:seq", "r": "theme"}, {"s": "mimn", "t": "theme:system", "r": "theme"}, {"s": "mimn", "t": "co:alibaba", "r": "company"}, {"s": "mimn", "t": "venue:KDD", "r": "venue"}, {"s": "sim", "t": "stage:ctr", "r": "stage"}, {"s": "sim", "t": "theme:seq", "r": "theme"}, {"s": "sim", "t": "co:alibaba", "r": "company"}, {"s": "sim", "t": "venue:arXiv", "r": "venue"}, {"s": "eta", "t": "stage:ctr", "r": "stage"}, {"s": "eta", "t": "theme:seq", "r": "theme"}, {"s": "eta", "t": "co:alibaba", "r": "company"}, {"s": "eta", "t": "venue:arXiv", "r": "venue"}, {"s": "ubr4ctr", "t": "stage:ctr", "r": "stage"}, {"s": "ubr4ctr", "t": "theme:seq", "r": "theme"}, {"s": "ubr4ctr", "t": "venue:SIGIR", "r": "venue"}, {"s": "sdim", "t": "stage:ctr", "r": "stage"}, {"s": "sdim", "t": "theme:seq", "r": "theme"}, {"s": "sdim", "t": "co:meituan", "r": "company"}, {"s": "sdim", "t": "venue:CIKM", "r": "venue"}, {"s": "twin", "t": "stage:ctr", "r": "stage"}, {"s": "twin", "t": "theme:seq", "r": "theme"}, {"s": "twin", "t": "co:kuaishou", "r": "company"}, {"s": "twin", "t": "venue:arXiv", "r": "venue"}, {"s": "twin2", "t": "stage:ctr", "r": "stage"}, {"s": "twin2", "t": "theme:seq", "r": "theme"}, {"s": "twin2", "t": "theme:scaling", "r": "theme"}, {"s": "twin2", "t": "co:kuaishou", "r": "company"}, {"s": "twin2", "t": "venue:CIKM", "r": "venue"}, {"s": "kfatt", "t": "stage:ctr", "r": "stage"}, {"s": "kfatt", "t": "theme:seq", "r": "theme"}, {"s": "kfatt", "t": "co:jd", "r": "company"}, {"s": "kfatt", "t": "venue:NeurIPS", "r": "venue"}, {"s": "racp", "t": "stage:ctr", "r": "stage"}, {"s": "racp", "t": "theme:seq", "r": "theme"}, {"s": "racp", "t": "co:alibaba", "r": "company"}, {"s": "racp", "t": "venue:WSDM", "r": "venue"}, {"s": "jdimplicit", "t": "stage:ctr", "r": "stage"}, {"s": "jdimplicit", "t": "theme:seq", "r": "theme"}, {"s": "jdimplicit", "t": "co:jd", "r": "company"}, {"s": "jdimplicit", "t": "venue:WWW", "r": "venue"}, {"s": "iui", "t": "stage:ctr", "r": "stage"}, {"s": "iui", "t": "theme:seq", "r": "theme"}, {"s": "iui", "t": "co:jd", "r": "company"}, {"s": "iui", "t": "venue:CIKM", "r": "venue"}, {"s": "dcin", "t": "stage:ctr", "r": "stage"}, {"s": "dcin", "t": "theme:seq", "r": "theme"}, {"s": "dcin", "t": "co:meituan", "r": "company"}, {"s": "dcin", "t": "venue:CIKM", "r": "venue"}, {"s": "dihn", "t": "stage:ctr", "r": "stage"}, {"s": "dihn", "t": "theme:seq", "r": "theme"}, {"s": "dihn", "t": "co:alibaba", "r": "company"}, {"s": "dihn", "t": "venue:WWW", "r": "venue"}, {"s": "lrea", "t": "stage:ctr", "r": "stage"}, {"s": "lrea", "t": "theme:seq", "r": "theme"}, {"s": "lrea", "t": "co:alibaba", "r": "company"}, {"s": "lrea", "t": "venue:arXiv", "r": "venue"}, {"s": "bahe", "t": "stage:ctr", "r": "stage"}, {"s": "bahe", "t": "theme:seq", "r": "theme"}, {"s": "bahe", "t": "theme:genllm", "r": "theme"}, {"s": "bahe", "t": "co:alibaba", "r": "company"}, {"s": "bahe", "t": "venue:arXiv", "r": "venue"}, {"s": "dhen", "t": "stage:ctr", "r": "stage"}, {"s": "dhen", "t": "theme:scaling", "r": "theme"}, {"s": "dhen", "t": "theme:feat", "r": "theme"}, {"s": "dhen", "t": "co:meta", "r": "company"}, {"s": "dhen", "t": "venue:arXiv", "r": "venue"}, {"s": "est", "t": "stage:ctr", "r": "stage"}, {"s": "est", "t": "theme:scaling", "r": "theme"}, {"s": "est", "t": "co:alibaba", "r": "company"}, {"s": "est", "t": "venue:arXiv", "r": "venue"}, {"s": "srp4ctr", "t": "stage:ctr", "r": "stage"}, {"s": "srp4ctr", "t": "theme:seq", "r": "theme"}, {"s": "srp4ctr", "t": "co:meituan", "r": "company"}, {"s": "srp4ctr", "t": "venue:arXiv", "r": "venue"}, {"s": "hyformer", "t": "stage:ctr", "r": "stage"}, {"s": "hyformer", "t": "theme:seq", "r": "theme"}, {"s": "hyformer", "t": "theme:feat", "r": "theme"}, {"s": "hyformer", "t": "co:bytedance", "r": "company"}, {"s": "hyformer", "t": "venue:arXiv", "r": "venue"}, {"s": "tm20k", "t": "stage:ctr", "r": "stage"}, {"s": "tm20k", "t": "theme:seq", "r": "theme"}, {"s": "tm20k", "t": "theme:distill", "r": "theme"}, {"s": "tm20k", "t": "co:bytedance", "r": "company"}, {"s": "tm20k", "t": "venue:arXiv", "r": "venue"}, {"s": "fibinet", "t": "stage:ctr", "r": "stage"}, {"s": "fibinet", "t": "theme:feat", "r": "theme"}, {"s": "fibinet", "t": "co:sina", "r": "company"}, {"s": "fibinet", "t": "venue:RecSys", "r": "venue"}, {"s": "gatenet", "t": "stage:ctr", "r": "stage"}, {"s": "gatenet", "t": "theme:feat", "r": "theme"}, {"s": "gatenet", "t": "co:sina", "r": "company"}, {"s": "gatenet", "t": "venue:arXiv", "r": "venue"}, {"s": "contextnet", "t": "stage:ctr", "r": "stage"}, {"s": "contextnet", "t": "theme:feat", "r": "theme"}, {"s": "contextnet", "t": "co:sina", "r": "company"}, {"s": "contextnet", "t": "venue:arXiv", "r": "venue"}, {"s": "masknet", "t": "stage:ctr", "r": "stage"}, {"s": "masknet", "t": "theme:feat", "r": "theme"}, {"s": "masknet", "t": "co:sina", "r": "company"}, {"s": "masknet", "t": "venue:DLP-KDD", "r": "venue"}, {"s": "fibinet2", "t": "stage:ctr", "r": "stage"}, {"s": "fibinet2", "t": "theme:feat", "r": "theme"}, {"s": "fibinet2", "t": "co:sina", "r": "company"}, {"s": "fibinet2", "t": "venue:CIKM", "r": "venue"}, {"s": "canvideo", "t": "stage:ctr", "r": "stage"}, {"s": "canvideo", "t": "theme:mm", "r": "theme"}, {"s": "canvideo", "t": "co:baidu", "r": "company"}, {"s": "canvideo", "t": "venue:KDD", "r": "venue"}, {"s": "can", "t": "stage:ctr", "r": "stage"}, {"s": "can", "t": "theme:feat", "r": "theme"}, {"s": "can", "t": "co:alibaba", "r": "company"}, {"s": "can", "t": "venue:WSDM", "r": "venue"}, {"s": "memonet", "t": "stage:ctr", "r": "stage"}, {"s": "memonet", "t": "theme:feat", "r": "theme"}, {"s": "memonet", "t": "co:sina", "r": "company"}, {"s": "memonet", "t": "venue:CIKM", "r": "venue"}, {"s": "gdcn", "t": "stage:ctr", "r": "stage"}, {"s": "gdcn", "t": "theme:feat", "r": "theme"}, {"s": "gdcn", "t": "venue:CIKM", "r": "venue"}, {"s": "interformer", "t": "stage:ctr", "r": "stage"}, {"s": "interformer", "t": "theme:feat", "r": "theme"}, {"s": "interformer", "t": "theme:scaling", "r": "theme"}, {"s": "interformer", "t": "co:meta", "r": "company"}, {"s": "interformer", "t": "venue:CIKM", "r": "venue"}, {"s": "dmoe", "t": "stage:ctr", "r": "stage"}, {"s": "dmoe", "t": "theme:feat", "r": "theme"}, {"s": "dmoe", "t": "co:tencent", "r": "company"}, {"s": "dmoe", "t": "venue:arXiv", "r": "venue"}, {"s": "fat", "t": "stage:ctr", "r": "stage"}, {"s": "fat", "t": "theme:feat", "r": "theme"}, {"s": "fat", "t": "theme:scaling", "r": "theme"}, {"s": "fat", "t": "co:alibaba", "r": "company"}, {"s": "fat", "t": "venue:arXiv", "r": "venue"}, {"s": "lpfs", "t": "stage:ctr", "r": "stage"}, {"s": "lpfs", "t": "theme:feat", "r": "theme"}, {"s": "lpfs", "t": "co:kuaishou", "r": "company"}, {"s": "lpfs", "t": "venue:arXiv", "r": "venue"}, {"s": "gemnn", "t": "stage:ctr", "r": "stage"}, {"s": "gemnn", "t": "theme:feat", "r": "theme"}, {"s": "gemnn", "t": "theme:mtl", "r": "theme"}, {"s": "gemnn", "t": "co:baidu", "r": "company"}, {"s": "gemnn", "t": "venue:SIGIR", "r": "venue"}, {"s": "deepmcp", "t": "stage:ctr", "r": "stage"}, {"s": "deepmcp", "t": "theme:mtl", "r": "theme"}, {"s": "deepmcp", "t": "co:alibaba", "r": "company"}, {"s": "deepmcp", "t": "venue:IJCAI", "r": "venue"}, {"s": "minet", "t": "stage:ctr", "r": "stage"}, {"s": "minet", "t": "theme:domain", "r": "theme"}, {"s": "minet", "t": "co:alibaba", "r": "company"}, {"s": "minet", "t": "venue:CIKM", "r": "venue"}, {"s": "star", "t": "stage:ctr", "r": "stage"}, {"s": "star", "t": "theme:domain", "r": "theme"}, {"s": "star", "t": "co:alibaba", "r": "company"}, {"s": "star", "t": "venue:CIKM", "r": "venue"}, {"s": "adasparse", "t": "stage:ctr", "r": "stage"}, {"s": "adasparse", "t": "theme:domain", "r": "theme"}, {"s": "adasparse", "t": "co:alibaba", "r": "company"}, {"s": "adasparse", "t": "venue:CIKM", "r": "venue"}, {"s": "apg", "t": "stage:ctr", "r": "stage"}, {"s": "apg", "t": "theme:domain", "r": "theme"}, {"s": "apg", "t": "co:alibaba", "r": "company"}, {"s": "apg", "t": "venue:NeurIPS", "r": "venue"}, {"s": "hc2", "t": "stage:ctr", "r": "stage"}, {"s": "hc2", "t": "theme:domain", "r": "theme"}, {"s": "hc2", "t": "co:alibaba", "r": "company"}, {"s": "hc2", "t": "venue:CIKM", "r": "venue"}, {"s": "mmn", "t": "stage:cvr", "r": "stage"}, {"s": "mmn", "t": "theme:domain", "r": "theme"}, {"s": "mmn", "t": "theme:mtl", "r": "theme"}, {"s": "mmn", "t": "co:alibaba", "r": "company"}, {"s": "mmn", "t": "venue:CIKM", "r": "venue"}, {"s": "rec4ad", "t": "stage:ctr", "r": "stage"}, {"s": "rec4ad", "t": "theme:domain", "r": "theme"}, {"s": "rec4ad", "t": "theme:debias", "r": "theme"}, {"s": "rec4ad", "t": "co:alibaba", "r": "company"}, {"s": "rec4ad", "t": "venue:CIKM", "r": "venue"}, {"s": "dffm", "t": "stage:ctr", "r": "stage"}, {"s": "dffm", "t": "theme:domain", "r": "theme"}, {"s": "dffm", "t": "theme:feat", "r": "theme"}, {"s": "dffm", "t": "co:huawei", "r": "company"}, {"s": "dffm", "t": "venue:CIKM", "r": "venue"}, {"s": "safi", "t": "stage:ctr", "r": "stage"}, {"s": "safi", "t": "theme:domain", "r": "theme"}, {"s": "safi", "t": "theme:feat", "r": "theme"}, {"s": "safi", "t": "co:tencent", "r": "company"}, {"s": "safi", "t": "venue:KDD", "r": "venue"}, {"s": "mlora", "t": "stage:ctr", "r": "stage"}, {"s": "mlora", "t": "theme:domain", "r": "theme"}, {"s": "mlora", "t": "co:alibaba", "r": "company"}, {"s": "mlora", "t": "venue:RecSys", "r": "venue"}, {"s": "lcn", "t": "stage:ctr", "r": "stage"}, {"s": "lcn", "t": "theme:domain", "r": "theme"}, {"s": "lcn", "t": "theme:seq", "r": "theme"}, {"s": "lcn", "t": "co:tencent", "r": "company"}, {"s": "lcn", "t": "venue:KDD", "r": "venue"}, {"s": "stem", "t": "stage:ctr", "r": "stage"}, {"s": "stem", "t": "theme:domain", "r": "theme"}, {"s": "stem", "t": "theme:mtl", "r": "theme"}, {"s": "stem", "t": "theme:system", "r": "theme"}, {"s": "stem", "t": "co:tencent", "r": "company"}, {"s": "stem", "t": "venue:KDD", "r": "venue"}, {"s": "sum", "t": "stage:ctr", "r": "stage"}, {"s": "sum", "t": "theme:scaling", "r": "theme"}, {"s": "sum", "t": "theme:system", "r": "theme"}, {"s": "sum", "t": "co:meta", "r": "company"}, {"s": "sum", "t": "venue:arXiv", "r": "venue"}, {"s": "exfm", "t": "stage:ctr", "r": "stage"}, {"s": "exfm", "t": "theme:scaling", "r": "theme"}, {"s": "exfm", "t": "theme:distill", "r": "theme"}, {"s": "exfm", "t": "theme:system", "r": "theme"}, {"s": "exfm", "t": "co:meta", "r": "company"}, {"s": "exfm", "t": "venue:arXiv", "r": "venue"}, {"s": "llatte", "t": "stage:ctr", "r": "stage"}, {"s": "llatte", "t": "theme:scaling", "r": "theme"}, {"s": "llatte", "t": "theme:seq", "r": "theme"}, {"s": "llatte", "t": "co:meta", "r": "company"}, {"s": "llatte", "t": "venue:arXiv", "r": "venue"}, {"s": "lattice", "t": "stage:ctr", "r": "stage"}, {"s": "lattice", "t": "theme:scaling", "r": "theme"}, {"s": "lattice", "t": "theme:system", "r": "theme"}, {"s": "lattice", "t": "co:meta", "r": "company"}, {"s": "lattice", "t": "venue:KDD", "r": "venue"}, {"s": "rankup", "t": "stage:ctr", "r": "stage"}, {"s": "rankup", "t": "theme:scaling", "r": "theme"}, {"s": "rankup", "t": "theme:feat", "r": "theme"}, {"s": "rankup", "t": "co:tencent", "r": "company"}, {"s": "rankup", "t": "venue:arXiv", "r": "venue"}, {"s": "esmm", "t": "stage:cvr", "r": "stage"}, {"s": "esmm", "t": "theme:mtl", "r": "theme"}, {"s": "esmm", "t": "co:alibaba", "r": "company"}, {"s": "esmm", "t": "venue:SIGIR", "r": "venue"}, {"s": "esm2", "t": "stage:cvr", "r": "stage"}, {"s": "esm2", "t": "theme:mtl", "r": "theme"}, {"s": "esm2", "t": "co:alibaba", "r": "company"}, {"s": "esm2", "t": "venue:SIGIR", "r": "venue"}, {"s": "causaldebias", "t": "stage:cvr", "r": "stage"}, {"s": "causaldebias", "t": "theme:mtl", "r": "theme"}, {"s": "causaldebias", "t": "theme:debias", "r": "theme"}, {"s": "causaldebias", "t": "co:alibaba", "r": "company"}, {"s": "causaldebias", "t": "venue:WWW", "r": "venue"}, {"s": "hm3", "t": "stage:cvr", "r": "stage"}, {"s": "hm3", "t": "theme:mtl", "r": "theme"}, {"s": "hm3", "t": "theme:seq", "r": "theme"}, {"s": "hm3", "t": "co:alibaba", "r": "company"}, {"s": "hm3", "t": "venue:SIGIR", "r": "venue"}, {"s": "meituanconv", "t": "stage:cvr", "r": "stage"}, {"s": "meituanconv", "t": "theme:mtl", "r": "theme"}, {"s": "meituanconv", "t": "co:meituan", "r": "company"}, {"s": "meituanconv", "t": "venue:KDD", "r": "venue"}, {"s": "mal", "t": "stage:cvr", "r": "stage"}, {"s": "mal", "t": "theme:mtl", "r": "theme"}, {"s": "mal", "t": "co:alibaba", "r": "company"}, {"s": "mal", "t": "venue:CIKM", "r": "venue"}, {"s": "eslm", "t": "stage:cvr", "r": "stage"}, {"s": "eslm", "t": "theme:mtl", "r": "theme"}, {"s": "eslm", "t": "theme:debias", "r": "theme"}, {"s": "eslm", "t": "co:alibaba", "r": "company"}, {"s": "eslm", "t": "venue:arXiv", "r": "venue"}, {"s": "hapfd", "t": "stage:cvr", "r": "stage"}, {"s": "hapfd", "t": "theme:distill", "r": "theme"}, {"s": "hapfd", "t": "co:bytedance", "r": "company"}, {"s": "hapfd", "t": "venue:KDD", "r": "venue"}, {"s": "couponcvr", "t": "stage:cvr", "r": "stage"}, {"s": "couponcvr", "t": "theme:scaling", "r": "theme"}, {"s": "couponcvr", "t": "co:coupon", "r": "company"}, {"s": "couponcvr", "t": "venue:arXiv", "r": "venue"}, {"s": "dfm", "t": "stage:delayed", "r": "stage"}, {"s": "dfm", "t": "co:criteo", "r": "company"}, {"s": "dfm", "t": "venue:KDD", "r": "venue"}, {"s": "nodef", "t": "stage:delayed", "r": "stage"}, {"s": "nodef", "t": "venue:arXiv", "r": "venue"}, {"s": "twitterdf", "t": "stage:delayed", "r": "stage"}, {"s": "twitterdf", "t": "co:twitter", "r": "company"}, {"s": "twitterdf", "t": "venue:RecSys", "r": "venue"}, {"s": "tsdl", "t": "stage:delayed", "r": "stage"}, {"s": "tsdl", "t": "co:jd", "r": "company"}, {"s": "tsdl", "t": "venue:IJCAI", "r": "venue"}, {"s": "fsiw", "t": "stage:delayed", "r": "stage"}, {"s": "fsiw", "t": "venue:WWW", "r": "venue"}, {"s": "esdfm", "t": "stage:delayed", "r": "stage"}, {"s": "esdfm", "t": "theme:mtl", "r": "theme"}, {"s": "esdfm", "t": "co:alibaba", "r": "company"}, {"s": "esdfm", "t": "venue:AAAI", "r": "venue"}, {"s": "esdf", "t": "stage:delayed", "r": "stage"}, {"s": "esdf", "t": "theme:mtl", "r": "theme"}, {"s": "esdf", "t": "co:alibaba", "r": "company"}, {"s": "esdf", "t": "venue:AAAI", "r": "venue"}, {"s": "defer", "t": "stage:delayed", "r": "stage"}, {"s": "defer", "t": "co:alibaba", "r": "company"}, {"s": "defer", "t": "venue:arXiv", "r": "venue"}, {"s": "defuse", "t": "stage:delayed", "r": "stage"}, {"s": "defuse", "t": "co:alibaba", "r": "company"}, {"s": "defuse", "t": "venue:WWW", "r": "venue"}, {"s": "nbdfm", "t": "stage:delayed", "r": "stage"}, {"s": "nbdfm", "t": "venue:ADKDD", "r": "venue"}, {"s": "manyconv", "t": "stage:delayed", "r": "stage"}, {"s": "manyconv", "t": "co:google", "r": "company"}, {"s": "manyconv", "t": "venue:arXiv", "r": "venue"}, {"s": "scalecalib", "t": "stage:calibration", "r": "stage"}, {"s": "scalecalib", "t": "co:google", "r": "company"}, {"s": "scalecalib", "t": "venue:KDD", "r": "venue"}, {"s": "rankcalib", "t": "stage:calibration", "r": "stage"}, {"s": "rankcalib", "t": "co:alibaba", "r": "company"}, {"s": "rankcalib", "t": "venue:KDD", "r": "venue"}, {"s": "masm", "t": "stage:relevance", "r": "stage"}, {"s": "masm", "t": "co:alibaba", "r": "company"}, {"s": "masm", "t": "venue:WWW", "r": "venue"}, {"s": "hcmrm", "t": "stage:relevance", "r": "stage"}, {"s": "hcmrm", "t": "theme:mm", "r": "theme"}, {"s": "hcmrm", "t": "co:kuaishou", "r": "company"}, {"s": "hcmrm", "t": "venue:arXiv", "r": "venue"}, {"s": "gpr", "t": "stage:generative", "r": "stage"}, {"s": "gpr", "t": "theme:genllm", "r": "theme"}, {"s": "gpr", "t": "co:tencent", "r": "company"}, {"s": "gpr", "t": "venue:arXiv", "r": "venue"}, {"s": "unirom", "t": "stage:generative", "r": "stage"}, {"s": "unirom", "t": "theme:genllm", "r": "theme"}, {"s": "unirom", "t": "co:meituan", "r": "company"}, {"s": "unirom", "t": "venue:arXiv", "r": "venue"}, {"s": "llmdistill", "t": "stage:generative", "r": "stage"}, {"s": "llmdistill", "t": "theme:genllm", "r": "theme"}, {"s": "llmdistill", "t": "theme:distill", "r": "theme"}, {"s": "llmdistill", "t": "co:ebay", "r": "company"}, {"s": "llmdistill", "t": "venue:arXiv", "r": "venue"}, {"s": "imagectr", "t": "stage:ctr", "r": "stage"}, {"s": "imagectr", "t": "theme:mm", "r": "theme"}, {"s": "imagectr", "t": "theme:seq", "r": "theme"}, {"s": "imagectr", "t": "co:alibaba", "r": "company"}, {"s": "imagectr", "t": "venue:CIKM", "r": "venue"}, {"s": "taobaomm", "t": "stage:ctr", "r": "stage"}, {"s": "taobaomm", "t": "theme:mm", "r": "theme"}, {"s": "taobaomm", "t": "co:alibaba", "r": "company"}, {"s": "taobaomm", "t": "venue:CIKM", "r": "venue"}, {"s": "lrftrl", "t": "fblessons", "r": "lineage", "label": "FTRL & sparse LR -> GBDT/LR feature systems"}, {"s": "fblessons", "t": "twitterctr", "r": "lineage", "label": "ads CTR feature practice"}, {"s": "lrdisplay", "t": "fblessons", "r": "lineage", "label": "layered LR response models"}, {"s": "lrftrl", "t": "dcn", "r": "lineage", "label": "Google ads CTR: FTRL -> cross network"}, {"s": "deepintent", "t": "din", "r": "lineage", "label": "attention on ads -> attention on behaviors"}, {"s": "ffm", "t": "deepfm", "r": "lineage", "label": "FM -> FM-based DNN"}, {"s": "deepfm", "t": "fgcnn", "r": "lineage", "label": "CTR feature engineering -> auto feature generation"}, {"s": "dcn", "t": "gdcn", "r": "lineage", "label": "cross network -> improved cross network"}, {"s": "dcn", "t": "memonet", "r": "lineage", "label": "cross features -> memorized cross representations"}, {"s": "fibinet", "t": "gatenet", "r": "lineage", "label": "SENet -> feature gating"}, {"s": "fibinet", "t": "fibinet2", "r": "lineage", "label": "bilinear -> low-rank bilinear"}, {"s": "gatenet", "t": "masknet", "r": "lineage", "label": "gating -> instance-wise masks"}, {"s": "din", "t": "dien", "r": "lineage", "label": "interest activation -> interest evolution"}, {"s": "din", "t": "dsin", "r": "lineage", "label": "interests -> session interests"}, {"s": "din", "t": "dhan", "r": "lineage", "label": "attention -> hierarchical attention"}, {"s": "din", "t": "dstn", "r": "lineage", "label": "behavior -> + context/auxiliary ads"}, {"s": "din", "t": "mimn", "r": "lineage", "label": "long behaviors in production"}, {"s": "din", "t": "dihn", "r": "lineage", "label": "interest highlighting for trigger ads"}, {"s": "mimn", "t": "sim", "r": "lineage", "label": "memory server -> two-stage lifelong search"}, {"s": "sim", "t": "eta", "r": "lineage", "label": "hard search -> SimHash retrieval"}, {"s": "ubr4ctr", "t": "eta", "r": "lineage", "label": "behavior retrieval -> efficient hashing"}, {"s": "sim", "t": "sdim", "r": "lineage", "label": "long-term modeling -> hash sampling"}, {"s": "sim", "t": "twin", "r": "lineage", "label": "two-stage -> end-to-end twin towers"}, {"s": "twin", "t": "twin2", "r": "lineage", "label": "scaling to ultra-long sequences"}, {"s": "mimn", "t": "lcn", "r": "lineage", "label": "lifelong -> cross-domain lifelong"}, {"s": "sim", "t": "lrea", "r": "lineage", "label": "long-seq attention -> low-rank attention"}, {"s": "sim", "t": "bahe", "r": "lineage", "label": "long behaviors -> LLM-encoded behaviors"}, {"s": "esmm", "t": "esm2", "r": "lineage", "label": "post-click behavior decomposition"}, {"s": "esmm", "t": "causaldebias", "r": "lineage", "label": "post-click CVR debiasing"}, {"s": "esmm", "t": "hm3", "r": "lineage", "label": "entire space -> micro/macro multi-task"}, {"s": "esmm", "t": "esdfm", "r": "lineage", "label": "entire space + delayed feedback"}, {"s": "esmm", "t": "esdf", "r": "lineage", "label": "entire-space DFM"}, {"s": "esmm", "t": "eslm", "r": "lineage", "label": "unbiased CVR across full stages"}, {"s": "esm2", "t": "meituanconv", "r": "lineage", "label": "decomposition -> multi-step conversions"}, {"s": "esmm", "t": "mal", "r": "lineage", "label": "post-click CVR -> multi-attribution"}, {"s": "dfm", "t": "nodef", "r": "lineage", "label": "parametric -> nonparametric delay"}, {"s": "dfm", "t": "twitterdf", "r": "lineage", "label": "importance weighting for streaming"}, {"s": "dfm", "t": "tsdl", "r": "lineage", "label": "delay model -> post-click calibration"}, {"s": "dfm", "t": "fsiw", "r": "lineage", "label": "feedback shift correction"}, {"s": "dfm", "t": "esdfm", "r": "lineage", "label": "delay + entire space"}, {"s": "dfm", "t": "esdf", "r": "lineage", "label": "delay + entire space"}, {"s": "dfm", "t": "defer", "r": "lineage", "label": "importance weighting -> real negatives"}, {"s": "dfm", "t": "defuse", "r": "lineage", "label": "delay modeling -> label correction"}, {"s": "dfm", "t": "nbdfm", "r": "lineage", "label": "single -> multiple conversions"}, {"s": "dfm", "t": "manyconv", "r": "lineage", "label": "multi-conversion delay modeling"}, {"s": "mobius", "t": "rare", "r": "lineage", "label": "query-ad matching -> LLM commercial intent"}, {"s": "mobius", "t": "gr4ad", "r": "lineage", "label": "ads retrieval -> generative ads recommendation"}, {"s": "gpr", "t": "gr4ad", "r": "lineage", "label": "generative one-model ads paradigm"}, {"s": "minet", "t": "star", "r": "lineage", "label": "cross-domain -> multi-domain star topology"}, {"s": "star", "t": "adasparse", "r": "lineage", "label": "multi-domain -> adaptive sparsity"}, {"s": "star", "t": "apg", "r": "lineage", "label": "-> scenario-conditioned parameters"}, {"s": "star", "t": "mmn", "r": "lineage", "label": "-> masked multi-domain MoE"}, {"s": "star", "t": "mlora", "r": "lineage", "label": "-> scenario LoRA adapters"}, {"s": "star", "t": "hc2", "r": "lineage", "label": "-> scenario contrastive alignment"}, {"s": "minet", "t": "rec4ad", "r": "lineage", "label": "cross-domain -> rec-to-ads transfer"}, {"s": "deepmcp", "t": "copr", "r": "lineage", "label": "matching/ranking consistency -> cascade consistency"}, {"s": "fblessons", "t": "scalecalib", "r": "lineage", "label": "a decade of CTR calibration practice"}, {"s": "scalecalib", "t": "rankcalib", "r": "lineage", "label": "calibration + ranking consistency"}, {"s": "fblessons", "t": "factory", "r": "lineage", "label": "a decade of ads ML engineering"}, {"s": "dhen", "t": "interformer", "r": "lineage", "label": "sparse ensemble -> heterogeneous interaction"}, {"s": "dhen", "t": "lattice", "r": "lineage", "label": "ensemble stacking -> lattice model space"}, {"s": "dhen", "t": "rankup", "r": "lineage", "label": "-> high-rank ensemble representations"}, {"s": "dhen", "t": "exfm", "r": "lineage", "label": "sparse ensembles -> trillion-param foundation"}, {"s": "exfm", "t": "llatte", "r": "lineage", "label": "foundation serving -> scaling laws"}, {"s": "sum", "t": "llatte", "r": "lineage", "label": "user representations -> multi-stage seq scaling"}, {"s": "fat", "t": "est", "r": "lineage", "label": "transformer CTR -> unified scaling laws"}, {"s": "masm", "t": "hcmrm", "r": "lineage", "label": "relevance -> multimodal relevance"}, {"s": "imagectr", "t": "taobaomm", "r": "lineage", "label": "visual behaviors -> multimodal display ads"}, {"s": "dcin", "t": "unirom", "r": "lineage", "label": "Meituan CTR -> unified ads ranking"}, {"s": "srp4ctr", "t": "unirom", "r": "lineage", "label": "sequential pretraining -> end-to-end ROM"}, {"s": "dltr", "t": "din", "r": "covers", "label": "survey covers"}, {"s": "dltr", "t": "esmm", "r": "covers", "label": "survey covers"}, {"s": "dltr", "t": "dfm", "r": "covers", "label": "survey covers"}, {"s": "dltr", "t": "mobius", "r": "covers", "label": "survey covers"}, {"s": "dltr", "t": "lattice", "r": "covers", "label": "survey covers"}]};
+const nodes = DATA.nodes, edges = DATA.edges;
+const byId = new Map(nodes.map(n => [n.id, n]));
+const STAGE_COLOR = {};
+nodes.forEach(n => { if (n.type === 'stage') STAGE_COLOR[n.id.slice(6)] = n.color; });
+
+const EDGE_STYLE = {
+  lineage: {color:'#67e8f9', opacity:.5,  width:1.4, dash:null,      dist:85,  k:.12, marker:'arrow'},
+  covers:  {color:'#a5b4fc', opacity:.35, width:1,   dash:'5,4',     dist:150, k:.05, marker:'arrowPurple'},
+  stage:   {color:'#3d4f78', opacity:.3,  width:.7,  dash:null,      dist:120, k:.05, marker:null},
+  theme:   {color:'#6366f1', opacity:.14, width:.7,  dash:null,      dist:150, k:.03, marker:null},
+  company: {color:'#2dd4bf', opacity:.12, width:.6,  dash:null,      dist:210, k:.02, marker:null},
+  venue:   {color:'#8fa3c8', opacity:.1,  width:.6,  dash:null,      dist:230, k:.015,marker:null},
+};
+const EDGE_LABEL = {
+  lineage:'Model lineage', covers:'Survey covers', stage:'Pipeline stage',
+  theme:'Research theme', company:'Company', venue:'Venue'
+};
+const CHARGE = {paper:-120, theme:-420, stage:-760, company:-300, venue:-260};
+const WEIGHT = {paper:1, theme:2.3, stage:3, company:1.9, venue:1.6};
+
+/* ---------- derived graph data ---------- */
+nodes.forEach(n => {
+  n.deg = 0; n.x = 0; n.y = 0; n.vx = 0; n.vy = 0; n.fx = null; n.fy = null;
+  n.visible = true; n.el = null; n.lel = null;
+});
+const adj = new Map(nodes.map(n => [n.id, []]));
+edges.forEach(e => { adj.get(e.s).push({e, other: e.t}); adj.get(e.t).push({e, other: e.s}); });
+
+const stageAnchors = {};
+{
+  const st = nodes.filter(n => n.type === 'stage');
+  st.forEach((n, i) => {
+    const a = (i / st.length) * Math.PI * 2 - Math.PI / 2;
+    stageAnchors[n.id] = {x: Math.cos(a), y: Math.sin(a), i};
+  });
+}
+
+/* ---------- state ---------- */
+const stageIds = Object.keys(STAGE_COLOR);
+const state = {
+  rel:   {lineage:true, covers:true, stage:true, theme:true, company:false, venue:false},
+  hub:   {stage:true, theme:true, company:false, venue:false},
+  stages:new Set(stageIds),
+  y0:2013, y1:2026,
+  query:'', searchHits:new Set(),
+  hovered:null, selected:null,
+  labels:false, paused:false,
+  w:100, h:100, k:1, tx:0, ty:0,
+};
+let alpha = 1;
+
+/* ---------- visibility ---------- */
+function nodeVisible(n){
+  if (n.type === 'paper')
+    return state.stages.has(n.stage) && n.year >= state.y0 && n.year <= state.y1;
+  return state.hub[n.type];
+}
+function edgeVisible(e){
+  if (!state.rel[e.r]) return false;
+  return byId.get(e.s).visible && byId.get(e.t).visible;
+}
+function refreshVisibility(){
+  nodes.forEach(n => {
+    n.visible = nodeVisible(n);
+    n.deg = 0;
+  });
+  edges.forEach(e => {
+    e.visible = edgeVisible(e);
+    if (e.visible){ byId.get(e.s).deg++; byId.get(e.t).deg++; }
+  });
+  applyVisibility();
+  computeRadius();
+}
+
+/* ---------- physics ---------- */
+function radiusOf(n){
+  if (n.type === 'paper') return 4.6 + 1.15 * Math.sqrt(n.deg);
+  if (n.type === 'stage') return 13 + 1.35 * Math.sqrt(n.count || 10);
+  if (n.type === 'theme') return 9 + 1.1 * Math.sqrt(n.deg || 8);
+  return 7 + 0.9 * Math.sqrt(n.deg || 4);
+}
+function computeRadius(){ nodes.forEach(n => { n.r = radiusOf(n); if (n.el) n.el.setAttribute('r', n.r); }); }
+
+function place(sx, sy, k, tx, ty){
+  // world coords of screen rect
+  nodes.forEach(n => {
+    const stage = n.type === 'stage' ? stageAnchors[n.id] : null;
+    if (stage){
+      const R = Math.min(sx, sy) * 0.352;
+      n.x = R * stage.x + (Math.random() - .5) * 30;
+      n.y = R * stage.y + (Math.random() - .5) * 30;
+    } else if (n.type === 'theme'){
+      const th = nodes.filter(m => m.type === 'theme');
+      const i = th.indexOf(n);
+      const a = (i / th.length) * Math.PI * 2;
+      const R = Math.min(sx, sy) * 0.16;
+      n.x = R * Math.cos(a) + (Math.random() - .5) * 60;
+      n.y = R * Math.sin(a) + (Math.random() - .5) * 60;
+    } else {
+      n.x = (Math.random() - .5) * sx * 0.6;
+      n.y = (Math.random() - .5) * sy * 0.6;
+    }
+  });
+  alpha = 1;
+}
+
+function tick(){
+  if (state.paused || alpha < 0.005) return;
+  const cx = 0, cy = 0;
+  const vis = nodes.filter(n => n.visible);
+  // repulsion (O(n^2) over visible nodes)
+  for (let i = 0; i < vis.length; i++){
+    const a = vis[i];
+    for (let j = i + 1; j < vis.length; j++){
+      const b = vis[j];
+      let dx = a.x - b.x, dy = a.y - b.y;
+      let d2 = dx*dx + dy*dy;
+      if (d2 < 1) { d2 = 1; dx = Math.random() - .5; dy = Math.random() - .5; }
+      if (d2 > 360000) continue;
+      const minD2 = 500;
+      if (d2 < minD2) d2 = minD2;
+      const f = alpha * 1450 * WEIGHT[a.type] * WEIGHT[b.type] / d2;
+      const fx = f * dx, fy = f * dy;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    }
+  }
+  // springs
+  for (const e of edges){
+    if (!e.visible) continue;
+    const a = byId.get(e.s), b = byId.get(e.t);
+    const st = EDGE_STYLE[e.r];
+    let dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.sqrt(dx*dx + dy*dy) || 1;
+    const f = st.k * alpha * (d - st.dist);
+    const fx = f * dx / d, fy = f * dy / d;
+    a.vx += fx; a.vy += fy;
+    b.vx -= fx; b.vy -= fy;
+  }
+  // anchors + gravity + integrate
+  for (const n of vis){
+    if (n.type === 'stage'){
+      const a = stageAnchors[n.id];
+      const R = Math.min(state.w, state.h) * 0.352;
+      n.vx += (R * a.x - n.x) * 0.085 * alpha + (cx - n.x) * 0.002;
+      n.vy += (R * a.y - n.y) * 0.085 * alpha + (cy - n.y) * 0.002;
+    } else {
+      n.vx += (cx - n.x) * 0.03 * alpha;
+      n.vy += (cy - n.y) * 0.03 * alpha;
+    }
+    if (n.fx !== null){ n.x = n.fx; n.y = n.fy; n.vx = 0; n.vy = 0; continue; }
+    n.vx *= 0.86; n.vy *= 0.86;
+    const v = Math.hypot(n.vx, n.vy);
+    if (v > 28){ n.vx *= 28 / v; n.vy *= 28 / v; }
+    n.x += n.vx; n.y += n.vy;
+  }
+  // collision
+  for (let i = 0; i < vis.length; i++){
+    const a = vis[i];
+    for (let j = i + 1; j < vis.length; j++){
+      const b = vis[j];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const d2 = dx*dx + dy*dy;
+      const min = a.r + b.r + 3.5;
+      if (d2 < min * min && d2 > 0.01){
+        const d = Math.sqrt(d2);
+        const push = (min - d) / d * 0.42;
+        const px = dx * push, py = dy * push;
+        if (a.fx === null){ a.x -= px; a.y -= py; }
+        if (b.fx === null){ b.x += px; b.y += py; }
+      }
+    }
+  }
+  alpha = Math.max(alpha * 0.994, 0.02);
+}
+
+/* ---------- rendering ---------- */
+const svg = document.getElementById('graph');
+const viewport = document.getElementById('viewport');
+const elayer = document.getElementById('elayer');
+const nlayer = document.getElementById('nlayer');
+const llayer = document.getElementById('llayer');
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function mk(tag, attrs, parent){
+  const el = document.createElementNS(SVGNS, tag);
+  for (const k in attrs){
+    if (attrs[k] === null || attrs[k] === undefined) continue;
+    el.setAttribute(k, attrs[k]);
+  }
+  (parent || nlayer).appendChild(el);
+  return el;
+}
+
+function buildDom(){
+  elayer.innerHTML = ''; nlayer.innerHTML = ''; llayer.innerHTML = '';
+  for (const e of edges){
+    const st = EDGE_STYLE[e.r];
+    e.el = mk('line', {
+      stroke: st.color, 'stroke-opacity': st.opacity, 'stroke-width': st.width,
+      'stroke-dasharray': st.dash || 'none',
+      'marker-end': st.marker ? `url(#${st.marker})` : null,
+    }, elayer);
+    if (e.r === 'lineage' || e.r === 'covers'){
+      e.lel = mk('text', {
+        fill: st.color, 'font-size': 8.5, 'text-anchor': 'middle', opacity: 0,
+        'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#0b1020',
+        'stroke-width': 3,
+      }, llayer);
+      e.lel.textContent = e.label || '';
+    }
+  }
+  // draw order: venues/companies first, then themes, stages, papers
+  const order = {venue:0, company:1, theme:2, stage:3, paper:4};
+  const sorted = nodes.slice().sort((a,b) => order[a.type] - order[b.type]);
+  for (const n of sorted){
+    let el;
+    if (n.type === 'paper'){
+      el = mk('circle', {
+        fill: STAGE_COLOR[n.stage], stroke: n.stars >= 2 ? '#fbbf24' : '#0b1020',
+        'stroke-width': n.stars >= 2 ? 1.8 : .8, cursor: 'pointer',
+      }, nlayer);
+    } else if (n.type === 'stage'){
+      el = mk('circle', {fill: n.color, 'fill-opacity': .16, stroke: n.color, 'stroke-width': 2, cursor: 'pointer'}, nlayer);
+    } else if (n.type === 'theme'){
+      el = mk('circle', {fill: '#0b1020', stroke: '#818cf8', 'stroke-width': 1.6, 'stroke-dasharray': '3,2', cursor: 'pointer'}, nlayer);
+    } else if (n.type === 'company'){
+      el = mk('rect', {width: 14, height: 14, x: -7, y: -7, rx: 3.5, fill: '#0b1020', stroke: '#2dd4bf', 'stroke-width': 1.6, cursor: 'pointer'}, nlayer);
+    } else {
+      el = mk('rect', {width: 11, height: 11, x: -5.5, y: -5.5, rx: 1.5, fill: '#0b1020', stroke: '#5b6a8a', 'stroke-width': 1.4, cursor: 'pointer'}, nlayer);
+    }
+    el.__node = n;
+    n.el = el;
+    n.lel = mk('text', {
+      fill: n.type === 'paper' ? '#c8d4ea' : (n.type === 'stage' ? n.color : '#a5b4fc'),
+      'font-size': n.type === 'paper' ? 9.5 : 11,
+      'font-weight': n.type === 'paper' ? 400 : 600,
+      'text-anchor': 'middle', 'dominant-baseline': 'hanging',
+      'paint-order': 'stroke', stroke: '#0b1020', 'stroke-width': 3,
+      'pointer-events': 'none', opacity: 0,
+    }, llayer);
+    n.lel.textContent = n.label + (n.type === 'paper' && n.stars >= 2 ? ' ★' : '');
+  }
+}
+
+function applyVisibility(){
+  for (const e of edges){
+    if (!e.el) continue;
+    const show = e.visible;
+    if (show) e.el.removeAttribute('display');
+    else e.el.setAttribute('display', 'none');
+    if (e.lel && !show) e.lel.setAttribute('opacity', 0);
+  }
+  for (const n of nodes){
+    if (!n.el) continue;
+    if (!n.visible){ n.el.setAttribute('display','none'); if (n.lel) n.lel.setAttribute('opacity',0); }
+    else n.el.removeAttribute('display');
+  }
+}
+
+function highlightSets(){
+  const focus = state.hovered || state.selected;
+  let neighbors = null;
+  if (focus){
+    neighbors = new Set([focus]);
+    for (const {e, other} of adj.get(focus))
+      if (e.visible) neighbors.add(other);
+  }
+  return {focus, neighbors};
+}
+
+function render(){
+  const {focus, neighbors} = highlightSets();
+  const dimAll = !!neighbors;
+  for (const e of edges){
+    if (!e.visible) continue;
+    const a = byId.get(e.s), b = byId.get(e.t);
+    e.el.setAttribute('x1', a.x); e.el.setAttribute('y1', a.y);
+    e.el.setAttribute('x2', b.x); e.el.setAttribute('y2', b.y);
+    let op = EDGE_STYLE[e.r].opacity;
+    let dim = dimAll && !(neighbors.has(e.s) && neighbors.has(e.t));
+    if (state.searchHits.size)
+      dim = !(state.searchHits.has(e.s) && state.searchHits.has(e.t));
+    e.el.setAttribute('stroke-opacity', dim ? op * 0.12 : op);
+    if (e.lel){
+      const showLabel = (focus && (e.s === focus || e.t === focus) && (e.r === 'lineage' || e.r === 'covers'));
+      if (showLabel){
+        e.lel.setAttribute('x', (a.x + b.x) / 2);
+        e.lel.setAttribute('y', (a.y + b.y) / 2 - 4);
+        e.lel.setAttribute('opacity', .95);
+      } else e.lel.setAttribute('opacity', 0);
+    }
+  }
+  const showPaperLabels = state.labels && state.k > 0.75;
+  for (const n of nodes){
+    if (!n.visible) continue;
+    n.el.setAttribute('transform', `translate(${n.x},${n.y})`);
+    if (n.type === 'paper') n.el.setAttribute('r', n.r);
+    let op = 1;
+    if (dimAll && !neighbors.has(n.id)) op = .12;
+    if (state.searchHits.size){
+      if (state.searchHits.has(n.id)){ op = 1; n.el.setAttribute('stroke', '#67e8f9'); if (n.type==='paper') n.el.setAttribute('stroke-width', 2); }
+      else op = Math.min(op, .18);
+    } else if (n.type === 'paper' && n.stars >= 2){
+      n.el.setAttribute('stroke', '#fbbf24'); n.el.setAttribute('stroke-width', 1.8);
+    } else if (n.type === 'paper'){
+      n.el.setAttribute('stroke', '#0b1020'); n.el.setAttribute('stroke-width', .8);
+    }
+    n.el.setAttribute('opacity', op);
+    const isNeighbor = neighbors && neighbors.has(n.id);
+    const showLabel = n.type !== 'paper'
+      ? true
+      : (showPaperLabels || n.id === focus || isNeighbor || state.searchHits.has(n.id));
+    if (showLabel){
+      n.lel.setAttribute('x', n.x);
+      n.lel.setAttribute('y', n.y + n.r + 3);
+      n.lel.setAttribute('opacity', n.type === 'paper' ? Math.max(op, .5) : .95);
+    } else n.lel.setAttribute('opacity', 0);
+  }
+  viewport.setAttribute('transform', `translate(${state.tx},${state.ty}) scale(${state.k})`);
+}
+
+function frame(){
+  tick(); render();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- zoom / pan / drag ---------- */
+function svgPoint(ev){
+  const r = svg.getBoundingClientRect();
+  return {x: ev.clientX - r.left, y: ev.clientY - r.top};
+}
+function toWorld(p){ return {x: (p.x - state.tx) / state.k, y: (p.y - state.ty) / state.k}; }
+
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const p = svgPoint(ev);
+  const w = toWorld(p);
+  state.k = Math.min(4.5, Math.max(0.22, state.k * Math.exp(-ev.deltaY * 0.0011)));
+  state.tx = p.x - w.x * state.k;
+  state.ty = p.y - w.y * state.k;
+}, {passive:false});
+
+let ptr = null;
+svg.addEventListener('pointerdown', ev => {
+  const p = svgPoint(ev);
+  let target = ev.target.__node || null;
+  ptr = {p, start:p, node:target, moved:false, pan:!target};
+  svg.setPointerCapture(ev.pointerId);
+  svg.classList.add('dragging');
+});
+svg.addEventListener('pointermove', ev => {
+  const p = svgPoint(ev);
+  // hover
+  if (!ptr){
+    const t = ev.target.__node;
+    if (t !== state.hovered){ state.hovered = t ? t.id : null; onHover(); }
+    const tip = document.getElementById('tooltip');
+    if (t){ tip.style.display = 'block'; tip.style.left = (p.x + 16) + 'px'; tip.style.top = (p.y + 12) + 'px'; fillTooltip(t); }
+    else tip.style.display = 'none';
+  }
+  if (!ptr) return;
+  const dx = p.x - ptr.p.x, dy = p.y - ptr.p.y;
+  if (Math.hypot(p.x - ptr.start.x, p.y - ptr.start.y) > 4) ptr.moved = true;
+  if (ptr.pan){
+    state.tx += dx; state.ty += dy;
+  } else if (ptr.node && ptr.moved){
+    const w = toWorld(p);
+    ptr.node.fx = w.x; ptr.node.fy = w.y;
+    alpha = Math.max(alpha, 0.45);
+  }
+  ptr.p = p;
+});
+svg.addEventListener('pointerup', ev => {
+  if (ptr && !ptr.moved){
+    const t = ptr.node;
+    if (t) select(t.id);
+    else select(null);
+  }
+  if (ptr && ptr.node){ ptr.node.fx = null; ptr.node.fy = null; }
+  ptr = null;
+  svg.classList.remove('dragging');
+});
+svg.addEventListener('dblclick', ev => { if (!ev.target.__node) fitView(); });
+
+/* ---------- tooltip & detail ---------- */
+const STAGE_LABEL = {};
+nodes.forEach(n => { if (n.type === 'stage') STAGE_LABEL[n.id.slice(6)] = n.label; });
+const THEME_LABEL = {};
+nodes.forEach(n => { if (n.type === 'theme') THEME_LABEL[n.id] = n.label; });
+
+function fillTooltip(n){
+  const tip = document.getElementById('tooltip');
+  if (n.type === 'paper'){
+    tip.innerHTML = `<div class="tt-tag">${n.label}${n.stars >= 2 ? ' ★★' : n.stars === 1 ? ' ★' : ''}</div>
+      <div class="tt-title">${n.title.replace(/^\d{4}\s*/, '').replace(/\[[^\]]+\]\s*/, '')}</div>
+      <div class="tt-meta">${n.year ?? ''} · ${n.company || '—'} · ${n.venue || '—'} · ${STAGE_LABEL[n.stage]}</div>`;
+  } else {
+    tip.innerHTML = `<div class="tt-tag">${n.label}</div><div class="tt-meta">${n.desc || (n.type==='company'?'Company hub':n.type==='venue'?'Venue hub':'')} · ${n.deg} links</div>`;
+  }
+}
+
+function relList(id, dir){
+  // dir 'in': edges t===id (builds on), 'out': s===id
+  const out = [];
+  for (const {e, other} of adj.get(id)){
+    if (e.r !== 'lineage') continue;
+    const isInbound = e.t === id;
+    if ((dir === 'in') === isInbound) out.push({other, label: e.label, dir});
+  }
+  return out;
+}
+
+function select(id){
+  state.selected = id;
+  const d = document.getElementById('detail');
+  if (!id){ d.style.display = 'none'; return; }
+  const n = byId.get(id);
+  let html = '<span class="close" id="dclose">✕</span>';
+  if (n.type === 'paper'){
+    const stars = n.stars >= 2 ? ' ★★ industrial + influential' : n.stars === 1 ? ' ★ industrial deployment' : '';
+    html += `<h3>${n.label}</h3>
+      <div class="badges">
+        <span class="badge stage" style="border-color:${STAGE_COLOR[n.stage]};color:${STAGE_COLOR[n.stage]}">${STAGE_LABEL[n.stage]}</span>
+        <span class="badge">${n.year ?? ''}</span>
+        ${n.company ? `<span class="badge">${n.company}</span>` : ''}
+        ${n.venue ? `<span class="badge">${n.venue}</span>` : ''}
+        ${stars ? `<span class="badge" style="color:#fbbf24">${stars.trim()}</span>` : ''}
+        ${n.listed > 1 ? `<span class="badge">listed ×${n.listed}</span>` : ''}
+      </div>
+      <div class="note" style="color:#c8d4ea">${n.title.replace(/^\d{4}\s*/, '')}</div>
+      ${n.themes && n.themes.length ? `<div class="badges">${n.themes.map(t => `<span class="badge" style="color:#a5b4fc;border-color:#4c549b">${THEME_LABEL['theme:'+t] || t}</span>`).join('')}</div>` : ''}
+      ${n.note ? `<div class="note">${n.note}</div>` : ''}
+      <div class="rel"><h4>Builds on</h4>${
+        relList(id,'in').length ? relList(id,'in').map(r => `<a data-go="${r.other}">${byId.get(r.other).label}${r.label ? ` <span>— ${r.label}</span>` : ''}</a>`).join('') : '<span style="color:var(--tx3);font-size:11.5px">—</span>'}</div>
+      <div class="rel"><h4>Extended by</h4>${
+        relList(id,'out').length ? relList(id,'out').map(r => `<a data-go="${r.other}">${byId.get(r.other).label}${r.label ? ` <span>— ${r.label}</span>` : ''}</a>`).join('') : '<span style="color:var(--tx3);font-size:11.5px">—</span>'}</div>
+      ${n.url ? `<a class="pdflink" href="${n.url}" target="_blank" rel="noopener">Open PDF ↗</a>` : ''}`;
+  } else {
+    const members = [];
+    for (const {e, other} of adj.get(id))
+      if (byId.get(other).type === 'paper' && e.visible) members.push(other);
+    const uniq = [...new Set(members)];
+    html += `<h3>${n.label}</h3>
+      <div class="badges"><span class="badge">${n.type} hub</span><span class="badge">${uniq.length} papers</span></div>
+      ${n.desc ? `<div class="note">${n.desc}</div>` : ''}
+      <div class="rel"><h4>Papers</h4><div class="memlist">${
+        uniq.map(m => `<a data-go="${m}">${byId.get(m).label} <span>· ${byId.get(m).year ?? ''}${byId.get(m).company ? ' · ' + byId.get(m).company : ''}</span></a>`).join('') || '<span style="color:var(--tx3);font-size:11.5px">—</span>'}</div></div>`;
+  }
+  d.innerHTML = html;
+  d.style.display = 'block';
+  document.getElementById('dclose').onclick = () => select(null);
+  d.querySelectorAll('[data-go]').forEach(a =>
+    a.addEventListener('click', () => { select(a.dataset.go); centerOn(a.dataset.go); }));
+}
+
+function centerOn(id){
+  const n = byId.get(id);
+  state.tx = state.w / 2 - n.x * state.k;
+  state.ty = state.h / 2 - n.y * state.k;
+}
+function onHover(){ /* render picks it up */ }
+
+function fitView(){
+  const vis = nodes.filter(n => n.visible);
+  if (!vis.length) return;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  vis.forEach(n => {
+    x0 = Math.min(x0, n.x - 40); y0 = Math.min(y0, n.y - 30);
+    x1 = Math.max(x1, n.x + 40); y1 = Math.max(y1, n.y + 30);
+  });
+  state.k = Math.min(2.2, Math.min(state.w / (x1 - x0), state.h / (y1 - y0)));
+  state.tx = (state.w - (x0 + x1) * state.k) / 2;
+  state.ty = (state.h - (y0 + y1) * state.k) / 2;
+}
+
+/* ---------- controls ---------- */
+function checkboxRow(id, label, color, checked, cb){
+  const lab = document.createElement('label');
+  lab.className = 'row';
+  lab.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''}>` +
+    (color ? `<span class="sw" style="background:${color}"></span>` : '') + `<span>${label}</span>`;
+  lab.querySelector('input').addEventListener('change', ev => cb(ev.target.checked));
+  return lab;
+}
+function buildControls(){
+  const relBox = document.getElementById('relBoxes');
+  for (const r of Object.keys(EDGE_STYLE))
+    relBox.appendChild(checkboxRow('rel-' + r, EDGE_LABEL[r], EDGE_STYLE[r].color, state.rel[r], v => { state.rel[r] = v; refreshVisibility(); }));
+  const hubBox = document.getElementById('hubBoxes');
+  const hubDefs = [['stage','Stage hubs','#34d399'],['theme','Theme hubs','#818cf8'],['company','Company hubs','#2dd4bf'],['venue','Venue hubs','#5b6a8a']];
+  for (const [id, label, color] of hubDefs)
+    hubBox.appendChild(checkboxRow('hub-' + id, label, color, state.hub[id], v => { state.hub[id] = v; refreshVisibility(); }));
+  const stBox = document.getElementById('stageBoxes');
+  for (const s of stageIds)
+    stBox.appendChild(checkboxRow('st-' + s, STAGE_LABEL[s], STAGE_COLOR[s], true, v => {
+      v ? state.stages.add(s) : state.stages.delete(s); refreshVisibility();
+    }));
+  document.getElementById('stAll').onclick = () => setAllStages(true);
+  document.getElementById('stNone').onclick = () => setAllStages(false);
+  document.getElementById('relAll').onclick = () => {
+    for (const r of Object.keys(state.rel)) state.rel[r] = true;
+    relBox.querySelectorAll('input').forEach(i => i.checked = true);
+    refreshVisibility();
+  };
+  document.getElementById('relNone').onclick = () => {
+    for (const r of Object.keys(state.rel)) state.rel[r] = (r === 'lineage');
+    relBox.querySelectorAll('input').forEach((i, idx) => i.checked = Object.keys(state.rel)[idx] === 'lineage');
+    refreshVisibility();
+  };
+  // years
+  const years = nodes.filter(n => n.type === 'paper' && n.year).map(n => n.year);
+  const ymin = Math.min(...years), ymax = Math.max(...years);
+  const y0 = document.getElementById('y0'), y1 = document.getElementById('y1');
+  y0.min = y1.min = ymin; y0.max = y1.max = ymax;
+  y0.value = state.y0 = ymin; y1.value = state.y1 = ymax;
+  const upd = () => {
+    state.y0 = Math.min(+y0.value, +y1.value);
+    state.y1 = Math.max(+y0.value, +y1.value);
+    document.getElementById('y0v').textContent = state.y0;
+    document.getElementById('y1v').textContent = state.y1;
+    refreshVisibility();
+  };
+  y0.addEventListener('input', upd); y1.addEventListener('input', upd);
+  upd();
+  // view buttons
+  document.getElementById('btnFit').onclick = fitView;
+  document.getElementById('btnShake').onclick = () => { alpha = 1; };
+  document.getElementById('btnLabels').onclick = ev => {
+    state.labels = !state.labels;
+    ev.target.classList.toggle('on', state.labels);
+  };
+  document.getElementById('btnPause').onclick = ev => {
+    state.paused = !state.paused;
+    ev.target.classList.toggle('on', state.paused);
+    ev.target.textContent = state.paused ? 'Resume physics' : 'Pause physics';
+  };
+  document.getElementById('menubtn').onclick = () =>
+    document.getElementById('sidebar').classList.toggle('open');
+  // search
+  const si = document.getElementById('search');
+  si.addEventListener('input', () => {
+    state.query = si.value.trim().toLowerCase();
+    state.searchHits = new Set();
+    if (state.query.length >= 2){
+      for (const n of nodes){
+        const hay = (n.label + ' ' + (n.title || '') + ' ' + (n.company || '') + ' ' + (n.venue || '') + ' ' + (n.note || '')).toLowerCase();
+        if (hay.includes(state.query)) state.searchHits.add(n.id);
+      }
+    }
+    document.getElementById('searchCount').textContent =
+      state.searchHits.size ? state.searchHits.size + ' match(es) — click a highlighted node' : '';
+  });
+}
+
+function setAllStages(on){
+  state.stages = on ? new Set(stageIds) : new Set();
+  document.getElementById('stageBoxes').querySelectorAll('input').forEach(i => i.checked = on);
+  refreshVisibility();
+}
+
+function buildLegend(){
+  const body = document.getElementById('legendBody');
+  const rows = [];
+  rows.push(`<div class="lrow"><svg class="lsvg" width="14" height="14"><circle cx="7" cy="7" r="5" fill="#34d399" fill-opacity=".2" stroke="#34d399" stroke-width="1.6"/></svg> stage hub</div>`);
+  rows.push(`<div class="lrow"><svg class="lsvg" width="14" height="14"><circle cx="7" cy="7" r="5" fill="#0b1020" stroke="#818cf8" stroke-width="1.4" stroke-dasharray="2.5,2"/></svg> theme hub</div>`);
+  rows.push(`<div class="lrow"><svg class="lsvg" width="14" height="14"><rect x="1.5" y="1.5" width="11" height="11" rx="3" fill="#0b1020" stroke="#2dd4bf" stroke-width="1.4"/></svg> company hub</div>`);
+  rows.push(`<div class="lrow"><svg class="lsvg" width="14" height="14"><rect x="2" y="2" width="10" height="10" rx="1.5" fill="#0b1020" stroke="#5b6a8a" stroke-width="1.3"/></svg> venue hub</div>`);
+  rows.push(`<div class="lrow"><svg class="lsvg" width="14" height="14"><circle cx="7" cy="7" r="4.5" fill="#67e8f9" stroke="#fbbf24" stroke-width="1.8"/></svg> ★★ industrial + influential</div>`);
+  rows.push(`<div class="lrow"><svg class="lsvg" width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="#67e8f9" stroke-width="1.5" marker-end=""/><circle cx="25" cy="4" r="2.4" fill="#67e8f9"/></svg> model lineage (“builds on”)</div>`);
+  rows.push(`<div class="lrow" style="color:#5b6a8a">papers are colored by pipeline stage</div>`);
+  body.innerHTML = rows.join('');
+}
+
+function buildStats(){
+  const np = nodes.filter(n => n.type === 'paper').length;
+  const nl = edges.filter(e => e.r === 'lineage').length;
+  document.getElementById('stats').innerHTML =
+    `<span class="chip"><b>${np}</b> ads papers</span><span class="chip"><b>${nl}</b> lineage links</span><span class="chip"><b>${nodes.length}</b> nodes</span><span class="chip"><b>${edges.length}</b> relations</span>`;
+}
+
+/* ---------- boot ---------- */
+function resize(){
+  state.w = svg.clientWidth; state.h = svg.clientHeight;
+}
+window.addEventListener('resize', () => { resize(); });
+resize();
+buildDom();
+place(state.w, state.h);
+buildControls();
+buildLegend();
+buildStats();
+refreshVisibility();
+alpha = 1;
+setTimeout(fitView, 900);
+frame();
+</script>
+</body>
+</html>
